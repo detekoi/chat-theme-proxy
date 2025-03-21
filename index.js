@@ -124,13 +124,18 @@ The font should match the overall aesthetic of the theme.`
           } else {
             // Store both the font name and its CSS value
             themeData.font_family_name = themeData.font_family;
-            themeData.font_family_value = fontEntry.value;
+            
+            // Make sure the value is directly usable in CSS
+            const cssValue = fontEntry.value.trim();
+            themeData.font_family_value = cssValue;
+            themeData.font_family_css = cssValue; // Alternative property with explicit name
           }
           
           // Log the font information for debugging
           console.log('Font selected:', {
             name: themeData.font_family,
-            value: themeData.font_family_value
+            value: themeData.font_family_value,
+            css: themeData.font_family_css
           });
           
           // Return the validated theme data

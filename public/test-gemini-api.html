@@ -224,21 +224,51 @@
                 // Set font family properly in DOM (fixes template literal issues with font stacks)
                 const fontValue = themeData.font_family_value || themeData.font_family;
                 
-                // Apply using cssText to ensure proper CSS parsing
-                document.getElementById('fontSample').style.cssText += `; font-family: ${fontValue} !important;`;
-                document.getElementById('chatMessage1').style.cssText += `; font-family: ${fontValue} !important;`;
-                document.getElementById('chatMessage2').style.cssText += `; font-family: ${fontValue} !important;`;
+                // Create a dynamic style element to ensure proper CSS parsing
+                const styleId = 'dynamic-font-style';
+                let styleEl = document.getElementById(styleId);
+                if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = styleId;
+                    document.head.appendChild(styleEl);
+                }
+                
+                // Use a CSS class instead of inline styles
+                styleEl.textContent = `
+                    .theme-font {
+                        font-family: ${fontValue} !important;
+                    }
+                `;
+                
+                // Apply the class to our elements
+                document.getElementById('fontSample').className = 'theme-font';
+                document.getElementById('chatMessage1').className = 'theme-font';
+                document.getElementById('chatMessage2').className = 'theme-font';
                 
                 // Log the actual font value being applied for debugging
                 console.log('Applied font family:', fontValue);
+                
+                // Helper function to get character codes for debugging
+                function getCharCodes(str) {
+                  return Array.from(str).map(c => `${c}:${c.charCodeAt(0)}`).join(' ');
+                }
                 
                 // Inspect what was actually applied
                 setTimeout(() => {
                   const computedStyle = window.getComputedStyle(document.getElementById('fontSample'));
                   console.log('Computed font-family:', computedStyle.fontFamily);
+                  console.log('Original font value:', fontValue);
+                  console.log('Font value char codes:', getCharCodes(fontValue));
+                  console.log('CSS class definition:', document.getElementById('dynamic-font-style').textContent);
                   
                   // Set the displayed font stack in the UI
-                  document.querySelector('#fontStack code').textContent = fontValue;
+                  const fontStackElement = document.querySelector('#fontStack code');
+                  fontStackElement.textContent = fontValue;
+                  
+                  // Display the actual style that was applied
+                  const debugInfo = document.createElement('div');
+                  debugInfo.innerHTML = `<small style="color: #999;">Applied: ${computedStyle.fontFamily}</small>`;
+                  fontStackElement.parentNode.appendChild(debugInfo);
                 }, 100);
                 
                 // Add success message
