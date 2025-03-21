@@ -127,6 +127,12 @@ The font should match the overall aesthetic of the theme.`
             themeData.font_family_value = fontEntry.value;
           }
           
+          // Log the font information for debugging
+          console.log('Font selected:', {
+            name: themeData.font_family,
+            value: themeData.font_family_value
+          });
+          
           // Return the validated theme data
           return res.json({ 
             ...response.data,
