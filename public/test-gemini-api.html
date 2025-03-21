@@ -195,7 +195,7 @@
                             <div style="width: 100px; font-weight: bold;">Font:</div>
                             <div>
                                 <div><strong>${themeData.font_family}</strong></div>
-                                <div><code style="font-size: 0.85em;">${themeData.font_family_value || themeData.font_family}</code></div>
+                                <div id="fontStack"><code style="font-size: 0.85em;"></code></div>
                             </div>
                         </div>
                         <div style="display: flex; margin-bottom: 10px; align-items: center;">
@@ -223,12 +223,23 @@
                 
                 // Set font family properly in DOM (fixes template literal issues with font stacks)
                 const fontValue = themeData.font_family_value || themeData.font_family;
-                document.getElementById('fontSample').style.fontFamily = fontValue;
-                document.getElementById('chatMessage1').style.fontFamily = fontValue;
-                document.getElementById('chatMessage2').style.fontFamily = fontValue;
+                
+                // Apply using cssText to ensure proper CSS parsing
+                document.getElementById('fontSample').style.cssText += `; font-family: ${fontValue} !important;`;
+                document.getElementById('chatMessage1').style.cssText += `; font-family: ${fontValue} !important;`;
+                document.getElementById('chatMessage2').style.cssText += `; font-family: ${fontValue} !important;`;
                 
                 // Log the actual font value being applied for debugging
                 console.log('Applied font family:', fontValue);
+                
+                // Inspect what was actually applied
+                setTimeout(() => {
+                  const computedStyle = window.getComputedStyle(document.getElementById('fontSample'));
+                  console.log('Computed font-family:', computedStyle.fontFamily);
+                  
+                  // Set the displayed font stack in the UI
+                  document.querySelector('#fontStack code').textContent = fontValue;
+                }, 100);
                 
                 // Add success message
                 outputElem.innerHTML = `<span class="success">Successfully generated theme!</span>\n\n${outputElem.textContent}`;
