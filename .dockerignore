@@ -1,0 +1,31 @@
+# Development and testing files
+public/
+test-gemini-api.html
+styles.css
+
+# Font assets
+assets/
+
+# Node modules and logs
+node_modules/
+npm-debug.log*
+logs/
+*.log
+
+# Environment variables and local config
+.env
+.env.*
+
+# Git files
+.git/
+.gitignore
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation
+README.md
+CLAUDE.md

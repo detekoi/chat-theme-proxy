@@ -8,7 +8,8 @@ RUN npm install --production
 
 COPY . ./
 
-# Container will use the PORT env var from Cloud Run
+# Set environment variables
 ENV PORT=8091
+ENV NODE_ENV=production
 
 CMD [ "npm", "start" ]

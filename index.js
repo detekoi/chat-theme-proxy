@@ -5,10 +5,18 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 
+// Determine if we're in development mode
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Only serve static files and test interface in development mode
+if (isDevelopment) {
+  console.log('Running in development mode with test interface enabled');
+  app.use(express.static(path.join(__dirname, 'public')));
+}
 
 // Get port from environment variable
 const PORT = process.env.PORT || 8091;
@@ -148,9 +156,15 @@ app.get('/health', (req, res) => {
   res.status(200).send('Theme Generator API is running');
 });
 
-// Serve the test page from the root path
+// Handle root endpoint - serve test page in dev, health check in production
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'test-gemini-api.html'));
+  if (isDevelopment) {
+    // In development, serve the test page
+    res.sendFile(path.join(__dirname, 'public', 'test-gemini-api.html'));
+  } else {
+    // In production, just return a simple message
+    res.status(200).send('Theme Generator API is running. Use /api/generate-theme endpoint for theme generation.');
+  }
 });
 
 // Start the server
