@@ -233,49 +233,52 @@
                     document.head.appendChild(styleEl);
                 }
                 
-                // Function to properly format a font stack for CSS
-                function formatFontStackForCSS(fontStack) {
-                    if (themeData.font_value_raw) {
-                        return themeData.font_value_raw; // Use the raw value if available
+                // Rather than using CSS, let's create span elements with the font
+                // This will bypass any CSS string processing issues
+                
+                // We'll use a simple function to create the elements
+                function createFontElement(text, extraStyles = {}) {
+                    const span = document.createElement('span');
+                    span.textContent = text;
+                    
+                    // Set the font family stack directly on the element
+                    span.style.fontFamily = themeData.font_family_value;
+                    
+                    // Add any extra styles
+                    for (const [key, value] of Object.entries(extraStyles)) {
+                        span.style[key] = value;
                     }
                     
-                    // If we need to parse the font stack ourselves
-                    const fontParts = fontStack.split(',').map(part => {
-                        part = part.trim();
-                        // If the part doesn't start with a quote and contains spaces or special chars, quote it
-                        if (!/^['"]/.test(part) && (part.includes(' ') || /[^a-zA-Z0-9-]/.test(part))) {
-                            return `"${part}"`;
-                        }
-                        return part;
-                    });
-                    
-                    // Join back the parts
-                    return fontParts.join(', ');
+                    return span;
                 }
                 
-                // Format the font value properly for CSS
-                const rawFontValue = formatFontStackForCSS(fontValue);
+                // Apply to the font sample
+                const fontSample = document.getElementById('fontSample');
+                fontSample.innerHTML = '';
+                fontSample.appendChild(createFontElement(
+                    "The quick brown fox jumps over the lazy dog", 
+                    { fontSize: '18px' }
+                ));
                 
-                // Create the CSS content with the full font stack
-                const cssContent = `.theme-font {
-    /* Font stack: ${fontValue} */
-    font-family: ${rawFontValue} !important;
-}`;
+                // Apply to the first chat message
+                const msg1 = document.getElementById('chatMessage1');
+                msg1.innerHTML = '';
+                msg1.appendChild(createFontElement("12:34 ", { color: '#808080', fontSize: '0.85em' }));
+                msg1.appendChild(createFontElement("Username: ", { color: themeData.username_color, fontWeight: 'bold' }));
+                msg1.appendChild(createFontElement("This is a sample chat message", { color: themeData.text_color }));
                 
-                // Use a CSS class instead of inline styles
-                styleEl.textContent = cssContent;
+                // Apply to the second chat message
+                const msg2 = document.getElementById('chatMessage2');
+                msg2.innerHTML = '';
+                msg2.appendChild(createFontElement("12:35 ", { color: '#808080', fontSize: '0.85em' }));
+                msg2.appendChild(createFontElement("AnotherUser: ", { color: themeData.username_color, fontWeight: 'bold' }));
+                msg2.appendChild(createFontElement("This is how your chat will look with the theme!", { color: themeData.text_color }));
                 
-                // Also display the CSS in the console for debugging
-                console.log('Generated CSS:', cssContent);
-                
-                // Apply the class to our elements
-                document.getElementById('fontSample').className = 'theme-font';
-                document.getElementById('chatMessage1').className = 'theme-font';
-                document.getElementById('chatMessage2').className = 'theme-font';
+                // Log what we're doing
+                console.log('Using DOM elements with direct font-family application:', themeData.font_family_value);
                 
                 // Log the actual font value being applied for debugging
-                console.log('Applied font family:', fontValue);
-                console.log('Formatted for CSS:', rawFontValue);
+                console.log('Applied font family directly to DOM elements:', fontValue);
                 console.log('Debug font info:', themeData._debug_font_info);
                 
                 // Helper function to get character codes for debugging
@@ -293,12 +296,21 @@
                   
                   // Set the displayed font stack in the UI
                   const fontStackElement = document.querySelector('#fontStack code');
-                  fontStackElement.textContent = fontValue;
+                  fontStackElement.textContent = themeData.font_family_value;
                   
                   // Display the actual style that was applied
                   const debugInfo = document.createElement('div');
                   debugInfo.innerHTML = `<small style="color: #999;">Applied: ${computedStyle.fontFamily}</small>`;
                   fontStackElement.parentNode.appendChild(debugInfo);
+                  
+                  // Add an example element for direct inspection
+                  const sampleSpan = document.createElement('span');
+                  sampleSpan.style.fontFamily = themeData.font_family_value;
+                  sampleSpan.textContent = "Sample text (inspect me in dev tools)";
+                  sampleSpan.style.fontSize = "12px";
+                  sampleSpan.style.display = "block";
+                  sampleSpan.style.marginTop = "5px";
+                  fontStackElement.parentNode.appendChild(sampleSpan);
                 }, 100);
                 
                 // Add success message
