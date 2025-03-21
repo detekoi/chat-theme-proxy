@@ -29,9 +29,9 @@ const availableFonts = [
     // Custom fonts
     { name: 'Atkinson Hyperlegible', value: "'Atkinson Hyperlegible', sans-serif", description: 'Designed for high legibility and reading clarity, especially at small sizes.', custom: true },
     { name: 'Tektur', value: "'Tektur', sans-serif", description: 'Modern and slightly angular typeface with a technical/sci-fi aesthetic.', custom: true },
-    { name: 'Medieval Sharp', value: "'MedievalSharp', cursive", description: 'Evokes a medieval/fantasy atmosphere with calligraphic details.', custom: true },
+    { name: 'MedievalSharp', value: "'MedievalSharp', cursive", description: 'Evokes a medieval/fantasy atmosphere with calligraphic details.', custom: true },
     { name: 'Press Start 2P', value: "'Press Start 2P', cursive", description: 'Pixelated retro gaming font that resembles 8-bit text.', custom: true },
-    { name: 'Jacquard 12', value: "'Jacquard', monospace", description: 'Clean monospaced font inspired by classic computer terminals.', custom: true },
+    { name: 'Jacquard', value: "'Jacquard', monospace", description: 'Pixelated font with retro fantasy vibes based on Victorian needlepoint.', custom: true },
     
     // System fonts organized by categories
     // Sans-serif fonts
@@ -84,12 +84,12 @@ Provide the following in JSON format with these exact fields:\n
 {\n  "theme_name": "[A short catchy name for this theme]",\n  "background_color": "[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]",\n  "border_color": "[hex color or 'transparent' - e.g., #ff6bcb]",\n  "text_color": "[hex color for chat text - e.g., #efeff1]",\n  "username_color": "[hex color for usernames - e.g., #9147ff]",\n  "font_family": "[Select one of these font names: ${fontOptions}]",\n  "description": "[A short 1-2 sentence description of the theme]"\n}
 
 When choosing fonts, consider:
-- For modern/tech themes: 'Tektur', 'Consolas', 'Jacquard 12', 'Tahoma'
-- For fantasy/medieval: 'Medieval Sharp', 'Palatino', 'EB Garamond'
-- For gaming/retro: 'Press Start 2P', 'Arial Black', 'Impact'
+- For modern/tech themes: 'Tektur', 'Consolas', 'System UI'
+- For fantasy/medieval: 'MedievalSharp', 'Jacquard', 'EB Garamond'
+- For gaming/retro: 'Press Start 2P', 'Jacquard', 'Impact'
 - For readability: 'Atkinson Hyperlegible', 'Verdana', 'System UI'
-- For classic/elegant: 'Georgia', 'Times New Roman', 'EB Garamond'
-- For playful/casual: 'Comic Sans MS', 'Trebuchet MS'
+- For classic/elegant: 'EB Garamond', 'Georgia', 'Times New Roman'
+- Avoid Comic Sans MS unless absolutely necessary to fit the theme.
 
 The font should match the overall aesthetic of the theme.`
           }]
@@ -112,13 +112,19 @@ The font should match the overall aesthetic of the theme.`
         if (jsonMatch) {
           const themeData = JSON.parse(jsonMatch[0]);
           
-          // Validate the font is in our list
-          const fontExists = availableFonts.some(font => font.name === themeData.font_family);
+          // Find the font in our list to get the proper value
+          const fontEntry = availableFonts.find(font => font.name === themeData.font_family);
           
-          if (!fontExists) {
+          if (!fontEntry) {
             // If font doesn't exist, default to System UI
+            const defaultFont = availableFonts.find(font => font.name === 'System UI');
             themeData.font_family = 'System UI';
+            themeData.font_family_value = defaultFont.value;
             console.warn(`Invalid font '${themeData.font_family}' replaced with 'System UI'`);
+          } else {
+            // Store both the font name and its CSS value
+            themeData.font_family_name = themeData.font_family;
+            themeData.font_family_value = fontEntry.value;
           }
           
           // Return the validated theme data
