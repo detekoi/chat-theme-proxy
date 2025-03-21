@@ -47,7 +47,7 @@ const availableFonts = [
     { name: 'Times New Roman', value: "'Times New Roman', Times, serif", description: 'Classic serif font with traditional letterforms.' },
     { name: 'Georgia', value: "Georgia, serif", description: 'Elegant serif font designed for screen readability.' },
     { name: 'Palatino', value: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", description: 'Elegant serif based on Renaissance letterforms.' },
-    { name: 'Garamond', value: "Garamond, Baskerville, 'Baskerville Old Face', serif", description: 'Classical serif with elegant proportions.' },
+    { name: 'EB Garamond', value: "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif", description: 'Classical serif with elegant proportions.', custom: true },
     
     // Monospace fonts
     { name: 'Courier New', value: "'Courier New', Courier, monospace", description: 'Classic monospaced font resembling typewriter text.' },
@@ -85,10 +85,10 @@ Provide the following in JSON format with these exact fields:\n
 
 When choosing fonts, consider:
 - For modern/tech themes: 'Tektur', 'Consolas', 'Jacquard 12', 'Tahoma'
-- For fantasy/medieval: 'Medieval Sharp', 'Palatino', 'Garamond'
+- For fantasy/medieval: 'Medieval Sharp', 'Palatino', 'EB Garamond'
 - For gaming/retro: 'Press Start 2P', 'Arial Black', 'Impact'
 - For readability: 'Atkinson Hyperlegible', 'Verdana', 'System UI'
-- For classic/elegant: 'Georgia', 'Times New Roman'
+- For classic/elegant: 'Georgia', 'Times New Roman', 'EB Garamond'
 - For playful/casual: 'Comic Sans MS', 'Trebuchet MS'
 
 The font should match the overall aesthetic of the theme.`
