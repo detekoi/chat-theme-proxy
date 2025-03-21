@@ -129,6 +129,15 @@ The font should match the overall aesthetic of the theme.`
             const cssValue = fontEntry.value.trim();
             themeData.font_family_value = cssValue;
             themeData.font_family_css = cssValue; // Alternative property with explicit name
+            
+            // Also provide the raw font stack value
+            themeData.font_value_raw = cssValue; // Preserves the exact string
+            themeData._debug_font_info = {
+              name: themeData.font_family,
+              value: fontEntry.value,
+              valueType: typeof fontEntry.value,
+              charCodes: Array.from(fontEntry.value).map(c => c.charCodeAt(0))
+            };
           }
           
           // Log the font information for debugging

@@ -233,12 +233,40 @@
                     document.head.appendChild(styleEl);
                 }
                 
-                // Use a CSS class instead of inline styles
-                styleEl.textContent = `
-                    .theme-font {
-                        font-family: ${fontValue} !important;
+                // Function to properly format a font stack for CSS
+                function formatFontStackForCSS(fontStack) {
+                    if (themeData.font_value_raw) {
+                        return themeData.font_value_raw; // Use the raw value if available
                     }
-                `;
+                    
+                    // If we need to parse the font stack ourselves
+                    const fontParts = fontStack.split(',').map(part => {
+                        part = part.trim();
+                        // If the part doesn't start with a quote and contains spaces or special chars, quote it
+                        if (!/^['"]/.test(part) && (part.includes(' ') || /[^a-zA-Z0-9-]/.test(part))) {
+                            return `"${part}"`;
+                        }
+                        return part;
+                    });
+                    
+                    // Join back the parts
+                    return fontParts.join(', ');
+                }
+                
+                // Format the font value properly for CSS
+                const rawFontValue = formatFontStackForCSS(fontValue);
+                
+                // Create the CSS content with the full font stack
+                const cssContent = `.theme-font {
+    /* Font stack: ${fontValue} */
+    font-family: ${rawFontValue} !important;
+}`;
+                
+                // Use a CSS class instead of inline styles
+                styleEl.textContent = cssContent;
+                
+                // Also display the CSS in the console for debugging
+                console.log('Generated CSS:', cssContent);
                 
                 // Apply the class to our elements
                 document.getElementById('fontSample').className = 'theme-font';
@@ -247,6 +275,8 @@
                 
                 // Log the actual font value being applied for debugging
                 console.log('Applied font family:', fontValue);
+                console.log('Formatted for CSS:', rawFontValue);
+                console.log('Debug font info:', themeData._debug_font_info);
                 
                 // Helper function to get character codes for debugging
                 function getCharCodes(str) {
