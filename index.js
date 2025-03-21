@@ -112,40 +112,17 @@ The font should match the overall aesthetic of the theme.`
         if (jsonMatch) {
           const themeData = JSON.parse(jsonMatch[0]);
           
-          // Find the font in our list to get the proper value
+          // Validate that the font exists in our list
           const fontEntry = availableFonts.find(font => font.name === themeData.font_family);
           
           if (!fontEntry) {
             // If font doesn't exist, default to System UI
-            const defaultFont = availableFonts.find(font => font.name === 'System UI');
             themeData.font_family = 'System UI';
-            themeData.font_family_value = defaultFont.value;
             console.warn(`Invalid font '${themeData.font_family}' replaced with 'System UI'`);
-          } else {
-            // Store both the font name and its CSS value
-            themeData.font_family_name = themeData.font_family;
-            
-            // Make sure the value is directly usable in CSS
-            const cssValue = fontEntry.value.trim();
-            themeData.font_family_value = cssValue;
-            themeData.font_family_css = cssValue; // Alternative property with explicit name
-            
-            // Also provide the raw font stack value
-            themeData.font_value_raw = cssValue; // Preserves the exact string
-            themeData._debug_font_info = {
-              name: themeData.font_family,
-              value: fontEntry.value,
-              valueType: typeof fontEntry.value,
-              charCodes: Array.from(fontEntry.value).map(c => c.charCodeAt(0))
-            };
           }
           
-          // Log the font information for debugging
-          console.log('Font selected:', {
-            name: themeData.font_family,
-            value: themeData.font_family_value,
-            css: themeData.font_family_css
-          });
+          // Log the font that was selected
+          console.log('Font selected:', themeData.font_family);
           
           // Return the validated theme data
           return res.json({ 

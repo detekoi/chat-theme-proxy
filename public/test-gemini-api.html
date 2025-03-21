@@ -233,33 +233,42 @@
                     document.head.appendChild(styleEl);
                 }
                 
-                // Rather than using CSS, let's create span elements with the font
-                // This will bypass any CSS string processing issues
-                
-                // We'll use a simple function to create the elements
+                // Simple function to create elements with the correct font stack
                 function createFontElement(text, extraStyles = {}) {
                     const span = document.createElement('span');
                     span.textContent = text;
                     
-                    // Debug the font family values
-                    console.log('Font family information:', {
-                        name: themeData.font_family,
-                        value: themeData.font_family_value,
-                        cssValue: themeData.font_family_css,
-                        raw: themeData.font_value_raw
-                    });
+                    // Use a direct mapping of font names to their CSS stacks
+                    const fontMap = {
+                        "Consolas": "Consolas, monaco, monospace",
+                        "EB Garamond": "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif",
+                        "Times New Roman": "'Times New Roman', Times, serif",
+                        "Georgia": "Georgia, serif",
+                        "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+                        "Arial": "Arial, sans-serif",
+                        "Helvetica": "Helvetica, Arial, sans-serif",
+                        "Verdana": "Verdana, Geneva, sans-serif",
+                        "Tahoma": "Tahoma, Geneva, sans-serif",
+                        "Trebuchet MS": "'Trebuchet MS', sans-serif",
+                        "Calibri": "Calibri, sans-serif",
+                        "Courier New": "'Courier New', Courier, monospace",
+                        "Lucida Console": "'Lucida Console', Monaco, monospace",
+                        "Impact": "'Impact', Haettenschweiler, sans-serif",
+                        "Comic Sans MS": "'Comic Sans MS', cursive",
+                        "Arial Black": "'Arial Black', Gadget, sans-serif",
+                        "System UI": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        "Atkinson Hyperlegible": "'Atkinson Hyperlegible', sans-serif",
+                        "Tektur": "'Tektur', sans-serif",
+                        "Medieval Sharp": "'MedievalSharp', cursive",
+                        "Press Start 2P": "'Press Start 2P', cursive",
+                        "Jacquard 12": "'Jacquard', monospace"
+                    };
                     
-                    // Choose the first available font value, with fallbacks
-                    const fontValue = themeData.font_value_raw || 
-                                     themeData.font_family_value || 
-                                     themeData.font_family_css || 
-                                     themeData.font_family ||
-                                     "'Consolas', monaco, monospace"; // Final fallback
+                    // Get the font stack from our map, or fallback to the font name
+                    const fontStack = fontMap[themeData.font_family] || themeData.font_family;
                     
-                    console.log('Using font value:', fontValue);
-                    
-                    // Set the font family stack directly on the element
-                    span.style.fontFamily = fontValue;
+                    // Set the font family stack directly 
+                    span.style.fontFamily = fontStack;
                     
                     // Add any extra styles
                     for (const [key, value] of Object.entries(extraStyles)) {
@@ -291,73 +300,39 @@
                 msg2.appendChild(createFontElement("AnotherUser: ", { color: themeData.username_color, fontWeight: 'bold' }));
                 msg2.appendChild(createFontElement("This is how your chat will look with the theme!", { color: themeData.text_color }));
                 
-                // Log what we're doing
-                console.log('Using DOM elements with direct font-family application:', themeData.font_family_value);
+                // Get the font map value for display in the UI
+                const fontMap = {
+                    "Consolas": "Consolas, monaco, monospace",
+                    "EB Garamond": "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif",
+                    "Times New Roman": "'Times New Roman', Times, serif",
+                    "Georgia": "Georgia, serif",
+                    "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+                    "Arial": "Arial, sans-serif", 
+                    "Helvetica": "Helvetica, Arial, sans-serif",
+                    "Verdana": "Verdana, Geneva, sans-serif",
+                    "Tahoma": "Tahoma, Geneva, sans-serif",
+                    "Trebuchet MS": "'Trebuchet MS', sans-serif",
+                    "Calibri": "Calibri, sans-serif",
+                    "Courier New": "'Courier New', Courier, monospace",
+                    "Lucida Console": "'Lucida Console', Monaco, monospace",
+                    "Impact": "'Impact', Haettenschweiler, sans-serif",
+                    "Comic Sans MS": "'Comic Sans MS', cursive",
+                    "Arial Black": "'Arial Black', Gadget, sans-serif",
+                    "System UI": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    "Atkinson Hyperlegible": "'Atkinson Hyperlegible', sans-serif",
+                    "Tektur": "'Tektur', sans-serif",
+                    "Medieval Sharp": "'MedievalSharp', cursive",
+                    "Press Start 2P": "'Press Start 2P', cursive",
+                    "Jacquard 12": "'Jacquard', monospace"
+                };
                 
-                // Log the actual font value being applied for debugging
-                console.log('Applied font family directly to DOM elements:', fontValue);
-                console.log('Debug font info:', themeData._debug_font_info);
+                // Set the displayed font stack in the UI
+                const fontStackElement = document.querySelector('#fontStack code');
+                fontStackElement.textContent = fontMap[themeData.font_family] || themeData.font_family;
                 
-                // Helper function to get character codes for debugging
-                function getCharCodes(str) {
-                  return Array.from(str).map(c => `${c}:${c.charCodeAt(0)}`).join(' ');
-                }
-                
-                // Inspect what was actually applied
-                setTimeout(() => {
-                  const computedStyle = window.getComputedStyle(document.getElementById('fontSample'));
-                  console.log('Computed font-family:', computedStyle.fontFamily);
-                  console.log('Original font value:', fontValue);
-                  console.log('Font value char codes:', getCharCodes(fontValue));
-                  console.log('CSS class definition:', document.getElementById('dynamic-font-style').textContent);
-                  
-                  // Set the displayed font stack in the UI
-                  const fontStackElement = document.querySelector('#fontStack code');
-                  fontStackElement.textContent = themeData.font_family_value;
-                  
-                  // Display the actual style that was applied
-                  const debugInfo = document.createElement('div');
-                  debugInfo.innerHTML = `<small style="color: #999;">Applied: ${computedStyle.fontFamily}</small>`;
-                  fontStackElement.parentNode.appendChild(debugInfo);
-                  
-                  // Add multiple example elements for direct inspection with different approaches
-                  const samplesContainer = document.createElement('div');
-                  samplesContainer.style.marginTop = "10px";
-                  samplesContainer.style.padding = "5px";
-                  samplesContainer.style.border = "1px dashed #ccc";
-                  samplesContainer.innerHTML = `<div style="font-weight:bold;margin-bottom:5px;">Font Test Samples (inspect in dev tools):</div>`;
-                  
-                  // Add examples using different approaches
-                  const samples = [
-                    { label: "Using font_value_raw:", value: themeData.font_value_raw },
-                    { label: "Using font_family_value:", value: themeData.font_family_value },
-                    { label: "Using font_family_css:", value: themeData.font_family_css },
-                    { label: "Using font_family name:", value: themeData.font_family },
-                    { label: "Using hardcoded value:", value: "'Consolas', monaco, monospace" }
-                  ];
-                  
-                  samples.forEach(sample => {
-                    if (sample.value) {
-                      const testDiv = document.createElement('div');
-                      testDiv.style.fontSize = "12px";
-                      testDiv.style.marginBottom = "3px";
-                      
-                      const label = document.createElement('span');
-                      label.textContent = sample.label + " ";
-                      label.style.color = "#888";
-                      
-                      const fontSpan = document.createElement('span');
-                      fontSpan.textContent = "The quick brown fox";
-                      fontSpan.style.fontFamily = sample.value;
-                      
-                      testDiv.appendChild(label);
-                      testDiv.appendChild(fontSpan);
-                      samplesContainer.appendChild(testDiv);
-                    }
-                  });
-                  
-                  fontStackElement.parentNode.appendChild(samplesContainer);
-                }, 100);
+                // Log the font that's being used
+                console.log('Using font:', themeData.font_family);
+                console.log('Font stack:', fontMap[themeData.font_family] || themeData.font_family);
                 
                 // Add success message
                 outputElem.innerHTML = `<span class="success">Successfully generated theme!</span>\n\n${outputElem.textContent}`;
