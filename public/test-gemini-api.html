@@ -195,7 +195,7 @@
                             <div style="width: 100px; font-weight: bold;">Font:</div>
                             <div>
                                 <div><strong>${themeData.font_family}</strong></div>
-                                <div id="fontStack"><code style="font-size: 0.85em;"></code></div>
+                                <div id="fontStack"><code style="font-size: 0.85em; display: block; margin-top: 3px;"></code></div>
                             </div>
                         </div>
                         <div style="display: flex; margin-bottom: 10px; align-items: center;">
@@ -241,8 +241,25 @@
                     const span = document.createElement('span');
                     span.textContent = text;
                     
+                    // Debug the font family values
+                    console.log('Font family information:', {
+                        name: themeData.font_family,
+                        value: themeData.font_family_value,
+                        cssValue: themeData.font_family_css,
+                        raw: themeData.font_value_raw
+                    });
+                    
+                    // Choose the first available font value, with fallbacks
+                    const fontValue = themeData.font_value_raw || 
+                                     themeData.font_family_value || 
+                                     themeData.font_family_css || 
+                                     themeData.font_family ||
+                                     "'Consolas', monaco, monospace"; // Final fallback
+                    
+                    console.log('Using font value:', fontValue);
+                    
                     // Set the font family stack directly on the element
-                    span.style.fontFamily = themeData.font_family_value;
+                    span.style.fontFamily = fontValue;
                     
                     // Add any extra styles
                     for (const [key, value] of Object.entries(extraStyles)) {
@@ -303,14 +320,43 @@
                   debugInfo.innerHTML = `<small style="color: #999;">Applied: ${computedStyle.fontFamily}</small>`;
                   fontStackElement.parentNode.appendChild(debugInfo);
                   
-                  // Add an example element for direct inspection
-                  const sampleSpan = document.createElement('span');
-                  sampleSpan.style.fontFamily = themeData.font_family_value;
-                  sampleSpan.textContent = "Sample text (inspect me in dev tools)";
-                  sampleSpan.style.fontSize = "12px";
-                  sampleSpan.style.display = "block";
-                  sampleSpan.style.marginTop = "5px";
-                  fontStackElement.parentNode.appendChild(sampleSpan);
+                  // Add multiple example elements for direct inspection with different approaches
+                  const samplesContainer = document.createElement('div');
+                  samplesContainer.style.marginTop = "10px";
+                  samplesContainer.style.padding = "5px";
+                  samplesContainer.style.border = "1px dashed #ccc";
+                  samplesContainer.innerHTML = `<div style="font-weight:bold;margin-bottom:5px;">Font Test Samples (inspect in dev tools):</div>`;
+                  
+                  // Add examples using different approaches
+                  const samples = [
+                    { label: "Using font_value_raw:", value: themeData.font_value_raw },
+                    { label: "Using font_family_value:", value: themeData.font_family_value },
+                    { label: "Using font_family_css:", value: themeData.font_family_css },
+                    { label: "Using font_family name:", value: themeData.font_family },
+                    { label: "Using hardcoded value:", value: "'Consolas', monaco, monospace" }
+                  ];
+                  
+                  samples.forEach(sample => {
+                    if (sample.value) {
+                      const testDiv = document.createElement('div');
+                      testDiv.style.fontSize = "12px";
+                      testDiv.style.marginBottom = "3px";
+                      
+                      const label = document.createElement('span');
+                      label.textContent = sample.label + " ";
+                      label.style.color = "#888";
+                      
+                      const fontSpan = document.createElement('span');
+                      fontSpan.textContent = "The quick brown fox";
+                      fontSpan.style.fontFamily = sample.value;
+                      
+                      testDiv.appendChild(label);
+                      testDiv.appendChild(fontSpan);
+                      samplesContainer.appendChild(testDiv);
+                    }
+                  });
+                  
+                  fontStackElement.parentNode.appendChild(samplesContainer);
                 }, 100);
                 
                 // Add success message
