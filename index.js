@@ -106,7 +106,12 @@ Additionally, in the same response, create a subtle tiled background image patte
       }
     );
     
-    console.log('Gemini response received:', JSON.stringify(response.data, null, 2));
+    // Log a shorter version of the response
+    console.log('Gemini response received with status:', response.status, response.statusText);
+    console.log('Response contains:', 
+      'candidates:', response.data.candidates ? response.data.candidates.length : 0,
+      'images:', response.data.candidates?.[0]?.content?.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/')) ? 'yes' : 'no'
+    );
     
     // Extract the theme data and image from the response
     try {
@@ -144,17 +149,28 @@ Additionally, in the same response, create a subtle tiled background image patte
           // If font doesn't exist, default to System UI
           themeData.font_family = 'System UI';
           console.warn(`Invalid font '${themeData.font_family}' replaced with 'System UI'`);
+          
+          // Update the theme data in the original response to keep it consistent
+          for (const part of response.data.candidates[0].content.parts) {
+            if (part.text) {
+              const jsonMatch = part.text.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                try {
+                  const updatedJsonText = part.text.replace(jsonMatch[0], JSON.stringify(themeData, null, 2));
+                  part.text = updatedJsonText;
+                } catch (e) {
+                  console.error('Error updating font in response JSON:', e);
+                }
+              }
+            }
+          }
         }
         
         // Log the font that was selected
         console.log('Font selected:', themeData.font_family);
         
-        // Return the validated theme data and background image
-        return res.json({ 
-          ...response.data,
-          themeData,
-          backgroundImage
-        });
+        // Return only the original response without any duplication
+        return res.json(response.data);
       }
       
       // If we can't extract valid JSON, return the raw response
