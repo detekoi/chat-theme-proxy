@@ -60,6 +60,9 @@ const availableFonts = [
     { name: 'Arial Black', value: "'Arial Black', Gadget, sans-serif", description: 'Extra bold version of Arial for strong emphasis.' }
 ];
 
+// Add helper to generate a unique storage key for generated themes
+const generateThemeStorageKey = (themeId) => `generated-theme-image-${themeId}`;
+
 // Define theme generation endpoint
 app.post('/api/generate-theme', async (req, res) => {
   try {
