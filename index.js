@@ -74,7 +74,7 @@ app.post('/api/generate-theme', async (req, res) => {
     
     // Call Gemini API with server-side key
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{
           parts: [{
@@ -91,7 +91,9 @@ When choosing fonts, consider:
 - For classic/elegant: 'EB Garamond', 'Georgia', 'Times New Roman'
 - Avoid Comic Sans MS unless absolutely necessary to fit the theme.
 
-The font should match the overall aesthetic of the theme.`
+The font should match the overall aesthetic of the theme.
+
+Additionally, in the same response, create a subtle tiled background image pattern that matches this theme's aesthetic. This pattern should be subtle enough not to interfere with text readability, but provide visual texture to the chat window and popups. The pattern should be tileable and complement the theme's background color.`
           }]
         }],
         generationConfig: {
@@ -99,43 +101,66 @@ The font should match the overall aesthetic of the theme.`
           topK: 32,
           topP: 0.95,
           maxOutputTokens: 1024,
+          responseModalities: ['Text', 'Image'] // Enable image generation
         }
       }
     );
     
-    // Try to extract the theme data from the response
+    console.log('Gemini response received:', JSON.stringify(response.data, null, 2));
+    
+    // Extract the theme data and image from the response
     try {
-      const responseText = response.data.candidates[0]?.content?.parts[0]?.text;
-      if (responseText) {
-        // Extract JSON object from the response
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const themeData = JSON.parse(jsonMatch[0]);
-          
-          // Validate that the font exists in our list
-          const fontEntry = availableFonts.find(font => font.name === themeData.font_family);
-          
-          if (!fontEntry) {
-            // If font doesn't exist, default to System UI
-            themeData.font_family = 'System UI';
-            console.warn(`Invalid font '${themeData.font_family}' replaced with 'System UI'`);
+      // Initialize variables
+      let themeData = null;
+      let backgroundImage = null;
+      
+      // Process each part of the response
+      if (response.data.candidates && response.data.candidates.length > 0) {
+        const parts = response.data.candidates[0]?.content?.parts || [];
+        
+        for (const part of parts) {
+          // If it's text, try to extract JSON
+          if (part.text) {
+            const jsonMatch = part.text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              themeData = JSON.parse(jsonMatch[0]);
+            }
           }
-          
-          // Log the font that was selected
-          console.log('Font selected:', themeData.font_family);
-          
-          // Return the validated theme data
-          return res.json({ 
-            ...response.data,
-            themeData 
-          });
+          // If it's an image, extract the data
+          else if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
+            backgroundImage = {
+              mimeType: part.inlineData.mimeType,
+              data: part.inlineData.data // This is base64 encoded image data
+            };
+          }
         }
+      }
+      
+      if (themeData) {
+        // Validate that the font exists in our list
+        const fontEntry = availableFonts.find(font => font.name === themeData.font_family);
+        
+        if (!fontEntry) {
+          // If font doesn't exist, default to System UI
+          themeData.font_family = 'System UI';
+          console.warn(`Invalid font '${themeData.font_family}' replaced with 'System UI'`);
+        }
+        
+        // Log the font that was selected
+        console.log('Font selected:', themeData.font_family);
+        
+        // Return the validated theme data and background image
+        return res.json({ 
+          ...response.data,
+          themeData,
+          backgroundImage
+        });
       }
       
       // If we can't extract valid JSON, return the raw response
       res.json(response.data);
     } catch (jsonError) {
-      console.error('Error parsing theme JSON:', jsonError);
+      console.error('Error parsing theme JSON or extracting image:', jsonError);
       // Return the original response if we can't parse the JSON
       res.json(response.data);
     }
