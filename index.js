@@ -173,13 +173,12 @@ Rules:
      - Sharp: For retro, pixel-art style shadows (8px offset)
 
 IMPORTANT: YOU MUST ALSO CREATE A BACKGROUND IMAGE. Generate a subtle tiled background pattern that matches this theme's aesthetic. The pattern should be:
-- Very small (around 200x200 pixels max)
-- Subtle enough not to interfere with text readability 
-- Minimal and abstract (simple shapes, lines, or textures)
-- Complement the theme's background color
-- Suitable for repeating as a tile
+- Very small (around 128x128 pixels to minimize tokens)
+- Simple abstract pattern (minimal lines, dots, or geometric shapes)
+- Low contrast with a similar color palette to the background
+- Suitable for tiling (repeating seamlessly)
 
-The image is REQUIRED and should be included in your response as an inline image.`
+This theme MUST include a background image. The image should be generated at a small size (128x128 pixels) to ensure it doesn't exceed token limits.`
           }]
         }],
         generationConfig: {
@@ -187,10 +186,7 @@ The image is REQUIRED and should be included in your response as an inline image
           topK: topK,
           topP: topP,
           maxOutputTokens: 2048, // Increased token limit to allow for image generation
-          responseModalities: ['TEXT', 'IMAGE'], // Enable image generation (with uppercase for emphasis)
-          generationRequirements: {
-            requestedModalities: ['IMAGE'] // Explicitly request image generation
-          }
+          responseModalities: ['text', 'image'] // Enable image generation
         }
       }
     );
