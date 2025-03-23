@@ -104,20 +104,27 @@ app.post('/api/generate-theme', async (req, res) => {
     let topP = 0.9;
     let prompt_prefix = '';
     
-    // If we're retrying, adjust the params to avoid RECITATION
+    // If we're retrying, adjust the params to avoid RECITATION or to encourage image generation
     if (attempt > 0) {
-      // Adjust temperature based on attempt number
+      // For image generation attempts (1-2), use higher temperature and lower topK  
       if (attempt === 1) {
-        temperature = 0.7; // Higher temperature on first retry
-        topK = 30;
-        prompt_prefix = 'Please use exactly this format (JSON object): ';
-      } else if (attempt >= 2) {
-        temperature = 0.3; // Lower temperature on subsequent retries for more deterministic output
+        temperature = 0.8; // Higher temperature to encourage creativity and image generation
+        topK = 40;
+        topP = 0.95;
+        prompt_prefix = 'IMPORTANT: Include a background image. Please use exactly this format: ';
+      } else if (attempt === 2) {
+        temperature = 0.9; // Even higher temperature on second attempt
+        topK = 50;
+        topP = 0.98;
+        prompt_prefix = 'YOU MUST INCLUDE A BACKGROUND IMAGE. RESPOND WITH ONLY A JSON OBJECT in this exact format: ';
+      } else {
+        // For higher attempts (3+), focus on getting valid JSON with lower temperature
+        temperature = 0.3; 
         topK = 10;
         prompt_prefix = 'RESPOND WITH ONLY A JSON OBJECT in this exact format: ';
       }
       
-      console.log(`Retry attempt ${attempt}: Using temperature=${temperature}, topK=${topK}`);
+      console.log(`Retry attempt ${attempt}: Using temperature=${temperature}, topK=${topK}, topP=${topP}`);
     }
     
     // Call Gemini API with server-side key and modified prompt for better results
@@ -165,15 +172,25 @@ Rules:
      - Intense 3D: For stronger depth and elevation
      - Sharp: For retro, pixel-art style shadows (8px offset)
 
-IMPORTANT: Additionally, create a subtle tiled background image pattern that matches this theme's aesthetic. The pattern should be subtle enough not to interfere with text readability, small enough for a default size of 320 x 600 (and even smaller in Popup mode), and should complement the theme's background color.`
+IMPORTANT: YOU MUST ALSO CREATE A BACKGROUND IMAGE. Generate a subtle tiled background pattern that matches this theme's aesthetic. The pattern should be:
+- Very small (around 200x200 pixels max)
+- Subtle enough not to interfere with text readability 
+- Minimal and abstract (simple shapes, lines, or textures)
+- Complement the theme's background color
+- Suitable for repeating as a tile
+
+The image is REQUIRED and should be included in your response as an inline image.`
           }]
         }],
         generationConfig: {
           temperature: temperature,
           topK: topK,
           topP: topP,
-          maxOutputTokens: 1024,
-          responseModalities: ['Text', 'Image'] // Enable image generation
+          maxOutputTokens: 2048, // Increased token limit to allow for image generation
+          responseModalities: ['TEXT', 'IMAGE'], // Enable image generation (with uppercase for emphasis)
+          generationRequirements: {
+            requestedModalities: ['IMAGE'] // Explicitly request image generation
+          }
         }
       }
     );
@@ -304,6 +321,17 @@ IMPORTANT: Additionally, create a subtle tiled background image pattern that mat
         }
       }
       if (themeData) {
+        // Check if we have a background image - if not and this isn't a high-attempt retry, try again
+        if (!backgroundImage && attempt < 2) {
+          console.log('No background image was generated. Retrying with increased temperature...');
+          // Retry with modified parameters to encourage image generation
+          return res.status(202).json({
+            retry: true,
+            message: "No background image was generated. Retrying...",
+            attempt: attempt + 1
+          });
+        }
+        
         // Validate that the font exists in our list
         const fontEntry = availableFonts.find(font => font.name === themeData.font_family);
         

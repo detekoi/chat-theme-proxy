@@ -53,6 +53,15 @@
             margin-left: 10px;
             font-style: italic;
         }
+        #retryInfo {
+            display: none;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #5e43bd22;
+            border-left: 4px solid #5e43bd;
+            color: #5e43bd;
+            font-style: italic;
+        }
         pre {
             background-color: #1e1e1e;
             color: #d4d4d4;
@@ -108,6 +117,7 @@
         <button id="generateBtn">Generate Theme</button>
         <span id="loading">Generating...</span>
     </div>
+    <div id="retryInfo">Retrying to get background image... (this may take a few seconds)</div>
     
     <div class="preview" id="preview">
         <h3>Generated Theme</h3>
@@ -140,33 +150,73 @@
             previewElem.style.display = 'none';
             
             try {
-                // Call the local proxy service
-                const response = await fetch('/api/generate-theme', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ prompt })
-                });
+                let attempt = 0;
+                let retrying = false;
+                let finalResponse, finalData;
                 
-                const data = await response.json();
+                do {
+                    // If we're retrying, show a message
+                    if (retrying) {
+                        outputElem.textContent = `Retrying (attempt ${attempt})... Waiting for background image generation.`;
+                        document.getElementById('retryInfo').style.display = 'block';
+                        document.getElementById('retryInfo').textContent = `Retry attempt ${attempt}: Trying to get a background image. This may take a few seconds...`;
+                    } else {
+                        document.getElementById('retryInfo').style.display = 'none';
+                    }
+                    
+                    // Call the local proxy service
+                    const response = await fetch('/api/generate-theme', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            prompt,
+                            attempt
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    finalResponse = response;
+                    finalData = data;
+                    
+                    // Display the raw response
+                    outputElem.textContent = JSON.stringify(data, null, 2);
+                    
+                    // Check if we need to retry for image generation
+                    if (response.status === 202 && data.retry) {
+                        retrying = true;
+                        attempt = data.attempt || attempt + 1;
+                        console.log(`Retrying theme generation, attempt ${attempt}`);
+                        // Short delay before retry
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        continue;
+                    }
+                    
+                    // If we get here, we're not retrying anymore
+                    retrying = false;
+                    
+                    if (!response.ok) {
+                        throw new Error(`API Error: ${data.error?.message || 'Unknown error'}`);
+                    }
+                    
+                    // Break out of the loop since we have valid data
+                    break;
+                } while (retrying && attempt < 3); // Limit to 3 attempts
                 
-                // Display the raw response
-                outputElem.textContent = JSON.stringify(data, null, 2);
-                
-                if (!response.ok) {
-                    throw new Error(`API Error: ${data.error?.message || 'Unknown error'}`);
+                if (!finalResponse.ok) {
+                    throw new Error(`API Error: ${finalData.error?.message || 'Unknown error'}`);
                 }
                 
-                // Access the themeData directly from the new API response format
-                const themeData = data.themeData;
+                // Access the themeData directly from the final response
+                const themeData = finalData.themeData;
                 
                 if (!themeData) {
                     throw new Error('No theme data found in response');
                 }
                 
                 // Check if we have a background image
-                const backgroundImage = data.backgroundImage;
+                const backgroundImage = finalData.backgroundImage;
                 if (backgroundImage) {
                     console.log('Background image available:', backgroundImage.mimeType);
                 }
