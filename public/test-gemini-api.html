@@ -54,19 +54,28 @@
             font-style: italic;
         }
         pre {
-            background-color: #f5f5f5;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
             padding: 15px;
             border-radius: 4px;
             overflow-x: auto;
             white-space: pre-wrap;
+            font-family: monospace;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
         }
         .error {
-            color: red;
+            color: #ff6b6b;
             font-weight: bold;
+            background-color: rgba(255, 0, 0, 0.1);
+            padding: 2px 5px;
+            border-radius: 3px;
         }
         .success {
-            color: green;
+            color: #69db7c;
             font-weight: bold;
+            background-color: rgba(0, 255, 0, 0.1);
+            padding: 2px 5px;
+            border-radius: 3px;
         }
         .preview {
             display: none;
@@ -149,20 +158,18 @@
                     throw new Error(`API Error: ${data.error?.message || 'Unknown error'}`);
                 }
                 
-                // Extract the generated JSON from the response
-                const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+                // Access the themeData directly from the new API response format
+                const themeData = data.themeData;
                 
-                if (!generatedText) {
-                    throw new Error('No response from theme generator API');
+                if (!themeData) {
+                    throw new Error('No theme data found in response');
                 }
                 
-                // Find and parse the JSON part
-                const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) {
-                    throw new Error('Could not find valid JSON in the response');
+                // Check if we have a background image
+                const backgroundImage = data.backgroundImage;
+                if (backgroundImage) {
+                    console.log('Background image available:', backgroundImage.mimeType);
                 }
-                
-                const themeData = JSON.parse(jsonMatch[0]);
                 
                 // Show the preview
                 document.getElementById('themeName').innerHTML = `<h2>${themeData.theme_name}</h2>`;
@@ -204,7 +211,22 @@
                         </div>
                     </div>
                     
-                    <div style="margin-top: 30px; padding: 15px; border-radius: 8px; background-color: ${themeData.background_color}; border: 2px solid ${themeData.border_color};">
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Border Radius:</div>
+                        <div>
+                            <div><strong>${themeData.border_radius || 'Subtle'}</strong></div>
+                            <div><code style="font-size: 0.85em; display: block; margin-top: 3px;">${themeData.border_radius_value || '8px'}</code></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Box Shadow:</div>
+                        <div>
+                            <div><strong>${themeData.box_shadow || 'Soft'}</strong></div>
+                            <div><code style="font-size: 0.85em; display: block; margin-top: 3px;">${themeData.box_shadow_value ? (themeData.box_shadow_value.length > 30 ? themeData.box_shadow_value.substring(0, 30) + '...' : themeData.box_shadow_value) : 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}</code></div>
+                        </div>
+                    </div>
+
+                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${themeData.border_radius_value || '8px'}; background-color: ${themeData.background_color}; border: 2px solid ${themeData.border_color}; box-shadow: ${themeData.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}">
                         <div id="chatMessage1" style="margin-bottom: 10px;">
                             <span style="color: #808080; font-size: 0.85em;">12:34</span>
                             <span style="color: ${themeData.username_color}; font-weight: bold;">Username:</span>
@@ -216,6 +238,20 @@
                             <span style="color: ${themeData.text_color};">This is how your chat will look with the theme!</span>
                         </div>
                     </div>
+                    
+                    ${backgroundImage ? `
+                    <div style="margin-top: 20px;">
+                        <h4>Background Image:</h4>
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                            <div style="flex: 0 0 auto;">
+                                <img src="data:${backgroundImage.mimeType};base64,${backgroundImage.data}" alt="Background Pattern" style="width: 200px; height: auto; border: 1px solid #ccc; border-radius: 4px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <p>This background pattern will be applied as a tiled background to your chat overlay.</p>
+                                <button id="applyBackgroundBtn" style="background-color: #5e43bd; margin-top: 10px;">Apply Background to Preview</button>
+                            </div>
+                        </div>
+                    </div>` : ''}
                 `;
                 
                 document.getElementById('themeColors').innerHTML = themeColorsHtml;
@@ -336,6 +372,25 @@
                 
                 // Add success message
                 outputElem.innerHTML = `<span class="success">Successfully generated theme!</span>\n\n${outputElem.textContent}`;
+                
+                // Add event listener for the "Apply Background" button if it exists
+                if (backgroundImage) {
+                    setTimeout(() => {
+                        const applyBackgroundBtn = document.getElementById('applyBackgroundBtn');
+                        if (applyBackgroundBtn) {
+                            applyBackgroundBtn.addEventListener('click', () => {
+                                const chatPreviewContainer = document.getElementById('chatPreviewContainer');
+                                if (chatPreviewContainer) {
+                                    chatPreviewContainer.style.backgroundImage = `url(data:${backgroundImage.mimeType};base64,${backgroundImage.data})`;
+                                    chatPreviewContainer.style.backgroundSize = '200px';
+                                    chatPreviewContainer.style.backgroundRepeat = 'repeat';
+                                    applyBackgroundBtn.textContent = 'Background Applied!';
+                                    applyBackgroundBtn.disabled = true;
+                                }
+                            });
+                        }
+                    }, 100);
+                }
                 
             } catch (error) {
                 console.error('Error generating theme:', error);

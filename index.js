@@ -24,6 +24,27 @@ const PORT = process.env.PORT || 8091;
 // Get API key from environment variable
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// Define border radius presets
+const borderRadiusPresets = {
+  "None": "0px",
+  "Subtle": "8px",
+  "Rounded": "16px",
+  "Pill": "24px"
+};
+
+// Define box shadow presets
+const boxShadowPresets = {
+  "None": "none",
+  "Soft": "rgba(99, 99, 99, 0.2) 0px 2px 8px 0px",
+  "Simple 3D": "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px",
+  "Intense 3D": "rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px",
+  "Sharp": "8px 8px 0px 0px rgba(0, 0, 0, 0.9)"
+};
+
+// Helper functions to get CSS values from preset names
+const getBorderRadiusValue = (preset) => borderRadiusPresets[preset] || borderRadiusPresets["None"];
+const getBoxShadowValue = (preset) => boxShadowPresets[preset] || boxShadowPresets["None"];
+
 // Define available fonts
 const availableFonts = [
     // Custom fonts
@@ -116,6 +137,8 @@ YOU MUST RESPOND WITH VALID JSON. NOTHING ELSE. Create this JSON object with the
   "text_color": "[hex color for chat text - e.g., #efeff1]",
   "username_color": "[hex color for usernames - e.g., #9147ff]",
   "font_family": "[One of these font names: ${fontOptions}]",
+  "border_radius": "[Choose one: None, Subtle, Rounded, Pill]",
+  "box_shadow": "[Choose one: None, Soft, Simple 3D, Intense 3D, Sharp]",
   "description": "[A short 1-2 sentence description of the theme]"
 }
 
@@ -129,6 +152,18 @@ Rules:
    - For gaming/retro: 'Press Start 2P', 'Jacquard', 'Impact'
    - For readability: 'Atkinson Hyperlegible', 'Verdana', 'System UI'
    - For classic/elegant: 'EB Garamond', 'Georgia', 'Times New Roman'
+5. Choose appropriate border radius and box shadow styles to match the theme:
+   - Border Radius options:
+     - None (0px): For sharp, angular designs
+     - Subtle (8px): For slightly softened corners
+     - Rounded (16px): For modern, friendly interfaces
+     - Pill (24px): For playful, bubbly designs
+   - Box Shadow options:
+     - None: For flat, minimal designs
+     - Soft: For subtle elevation (rgba(99, 99, 99, 0.2) 0px 2px 8px 0px)
+     - Simple 3D: For light layering effect
+     - Intense 3D: For stronger depth and elevation
+     - Sharp: For retro, pixel-art style shadows (8px offset)
 
 IMPORTANT: Additionally, create a subtle tiled background image pattern that matches this theme's aesthetic. The pattern should be subtle enough not to interfere with text readability, small enough for a default size of 320 x 600 (and even smaller in Popup mode), and should complement the theme's background color.`
           }]
@@ -276,25 +311,44 @@ IMPORTANT: Additionally, create a subtle tiled background image pattern that mat
           // If font doesn't exist, default to System UI
           themeData.font_family = 'System UI';
           console.warn(`Invalid font '${themeData.font_family}' replaced with 'System UI'`);
-          
-          // Update the theme data in the original response to keep it consistent
-          for (const part of response.data.candidates[0].content.parts) {
-            if (part.text) {
-              const jsonMatch = part.text.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                try {
-                  const updatedJsonText = part.text.replace(jsonMatch[0], JSON.stringify(themeData, null, 2));
-                  part.text = updatedJsonText;
-                } catch (e) {
-                  console.error('Error updating font in response JSON:', e);
-                }
+        }
+        
+        // Validate border radius and box shadow values
+        if (!Object.keys(borderRadiusPresets).includes(themeData.border_radius)) {
+          // Default to Subtle if invalid or missing
+          themeData.border_radius = 'Subtle';
+          console.warn(`Invalid border radius '${themeData.border_radius}' replaced with 'Subtle'`);
+        }
+        
+        if (!Object.keys(boxShadowPresets).includes(themeData.box_shadow)) {
+          // Default to Soft if invalid or missing
+          themeData.box_shadow = 'Soft';
+          console.warn(`Invalid box shadow '${themeData.box_shadow}' replaced with 'Soft'`);
+        }
+        
+        // Convert preset names to actual CSS values
+        themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
+        themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
+        
+        // Update the theme data in the original response to keep it consistent
+        for (const part of response.data.candidates[0].content.parts) {
+          if (part.text) {
+            const jsonMatch = part.text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              try {
+                const updatedJsonText = part.text.replace(jsonMatch[0], JSON.stringify(themeData, null, 2));
+                part.text = updatedJsonText;
+              } catch (e) {
+                console.error('Error updating theme data in response JSON:', e);
               }
             }
           }
         }
         
-        // Log the font that was selected
+        // Log theme selections
         console.log('Font selected:', themeData.font_family);
+        console.log('Border Radius:', themeData.border_radius, `(${themeData.border_radius_value})`);
+        console.log('Box Shadow:', themeData.box_shadow, `(${themeData.box_shadow_value.substring(0, 30)}...)`); // Log a snippet of the longer box shadow values
         
         // Return properly structured response with themeData
         console.log(`Successfully formatted response with theme "${themeData.theme_name}" and ${backgroundImage ? 'background image' : 'no background image'}`);
@@ -340,6 +394,16 @@ app.get('/api/fonts', (req, res) => {
   res.json(availableFonts);
 });
 
+// Endpoint to get border radius presets
+app.get('/api/border-radius-presets', (req, res) => {
+  res.json(borderRadiusPresets);
+});
+
+// Endpoint to get box shadow presets
+app.get('/api/box-shadow-presets', (req, res) => {
+  res.json(boxShadowPresets);
+});
+
 // Debug endpoint to check server status and configuration
 app.get('/api/debug', (req, res) => {
   res.json({
@@ -347,6 +411,8 @@ app.get('/api/debug', (req, res) => {
     geminiApiKeyConfigured: !!GEMINI_API_KEY,
     apiKeyLength: GEMINI_API_KEY ? GEMINI_API_KEY.length : 0,
     fontCount: availableFonts.length,
+    borderRadiusPresets: Object.keys(borderRadiusPresets),
+    boxShadowPresets: Object.keys(boxShadowPresets),
     environment: process.env.NODE_ENV || 'development',
     memoryUsage: process.memoryUsage(),
     serverUptime: process.uptime()
@@ -364,6 +430,10 @@ app.get('/api/test-theme', (req, res) => {
       text_color: "#eef1ff",
       username_color: "#a98eff",
       font_family: "System UI",
+      border_radius: "Rounded",
+      border_radius_value: "16px",
+      box_shadow: "Simple 3D",
+      box_shadow_value: "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px",
       description: "A test theme for debugging purposes."
     },
     backgroundImage: null // No image in test mode
