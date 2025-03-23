@@ -97,6 +97,62 @@
             margin-top: 0;
             color: #9147ff;
         }
+        /* Theme carousel styles */
+        #theme-carousel {
+            display: none;
+            margin-top: 30px;
+            border: 1px solid #5e43bd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        #carousel-title {
+            margin-top: 0;
+            color: #5e43bd;
+        }
+        #theme-cards {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+            gap: 15px;
+        }
+        .theme-card {
+            flex: 0 0 180px;
+            height: 100px;
+            border-radius: 8px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            padding: 10px;
+            font-weight: bold;
+            background-size: auto;
+            background-repeat: repeat;
+            color: #fff;
+            text-shadow: 0 0 4px rgba(0,0,0,0.8);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease-in-out;
+        }
+        .theme-card:hover {
+            transform: translateY(-5px);
+        }
+        .has-image-icon {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(255,255,255,0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -126,10 +182,182 @@
         <div id="themeColors"></div>
     </div>
     
+    <div id="theme-carousel">
+        <h3 id="carousel-title">Generated Themes</h3>
+        <p>All generated themes will appear here. Themes with background images are marked with ✓</p>
+        <div id="theme-cards"></div>
+    </div>
+    
     <h2>API Response:</h2>
     <pre id="output">Results will appear here...</pre>
     
     <script>
+        // Store all generated themes
+        const generatedThemes = [];
+        
+        // Store successful responses with images
+        let lastSuccessfulTheme = null;
+        
+        // Function to add a theme to the carousel
+        function addThemeToCarousel(themeData, backgroundImage = null) {
+            // Create a theme object with required properties
+            const theme = {
+                name: themeData.theme_name,
+                background_color: themeData.background_color,
+                border_color: themeData.border_color,
+                text_color: themeData.text_color,
+                username_color: themeData.username_color,
+                font_family: themeData.font_family,
+                border_radius: themeData.border_radius,
+                box_shadow: themeData.box_shadow,
+                description: themeData.description,
+                backgroundImage: backgroundImage ? `data:${backgroundImage.mimeType};base64,${backgroundImage.data}` : null,
+                timestamp: Date.now()
+            };
+            
+            // Add to the beginning of the array
+            generatedThemes.unshift(theme);
+            
+            // Update the carousel
+            updateCarousel();
+            
+            // Make the carousel visible
+            document.getElementById('theme-carousel').style.display = 'block';
+            
+            return theme;
+        }
+        
+        // Function to update the carousel display
+        function updateCarousel() {
+            const cardsContainer = document.getElementById('theme-cards');
+            cardsContainer.innerHTML = '';
+            
+            generatedThemes.forEach(theme => {
+                const card = document.createElement('div');
+                card.className = 'theme-card';
+                card.textContent = theme.name;
+                
+                // Set background color 
+                card.style.backgroundColor = theme.background_color;
+                
+                // Apply background image if available
+                if (theme.backgroundImage) {
+                    card.style.backgroundImage = `url('${theme.backgroundImage}')`;
+                    
+                    // Add an icon to indicate it has an image
+                    const imageIcon = document.createElement('div');
+                    imageIcon.className = 'has-image-icon';
+                    imageIcon.textContent = '✓';
+                    card.appendChild(imageIcon);
+                }
+                
+                // Add click handler to apply this theme
+                card.addEventListener('click', () => applyTheme(theme));
+                
+                cardsContainer.appendChild(card);
+            });
+        }
+        
+        // Function to apply a theme from the carousel
+        function applyTheme(theme) {
+            // Set the current theme details in the preview
+            document.getElementById('themeName').innerHTML = `<h2>${theme.name}</h2>`;
+            document.getElementById('themeDescription').innerHTML = `<p><em>${theme.description}</em></p>`;
+            
+            // Create the same preview HTML as the original function
+            const themeColorsHtml = `
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Background:</div>
+                        <div style="width: 40px; height: 40px; background-color: ${theme.background_color}; border: 1px solid #ccc; margin-right: 10px;"></div>
+                        <code>${theme.background_color}</code>
+                    </div>
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Border:</div>
+                        <div style="width: 40px; height: 40px; background-color: ${theme.border_color}; border: 1px solid #ccc; margin-right: 10px;"></div>
+                        <code>${theme.border_color}</code>
+                    </div>
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Text:</div>
+                        <div style="width: 40px; height: 40px; background-color: ${theme.text_color}; border: 1px solid #ccc; margin-right: 10px;"></div>
+                        <code>${theme.text_color}</code>
+                    </div>
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Username:</div>
+                        <div style="width: 40px; height: 40px; background-color: ${theme.username_color}; border: 1px solid #ccc; margin-right: 10px;"></div>
+                        <code>${theme.username_color}</code>
+                    </div>
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Font:</div>
+                        <div>
+                            <div><strong>${theme.font_family}</strong></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Border Radius:</div>
+                        <div>
+                            <div><strong>${theme.border_radius || 'Subtle'}</strong></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Box Shadow:</div>
+                        <div>
+                            <div><strong>${theme.box_shadow || 'Soft'}</strong></div>
+                        </div>
+                    </div>
+
+                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${theme.border_radius_value || '8px'}; background-color: ${theme.background_color}; border: 2px solid ${theme.border_color}; box-shadow: ${theme.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}">
+                        <div style="margin-bottom: 10px;">
+                            <span style="color: #808080; font-size: 0.85em;">12:34</span>
+                            <span style="color: ${theme.username_color}; font-weight: bold;">Username:</span>
+                            <span style="color: ${theme.text_color};">This is a sample chat message</span>
+                        </div>
+                        <div>
+                            <span style="color: #808080; font-size: 0.85em;">12:35</span>
+                            <span style="color: ${theme.username_color}; font-weight: bold;">AnotherUser:</span>
+                            <span style="color: ${theme.text_color};">This is how your chat will look with the theme!</span>
+                        </div>
+                    </div>
+                    
+                    ${theme.backgroundImage ? `
+                    <div style="margin-top: 20px;">
+                        <h4>Background Image:</h4>
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                            <div style="flex: 0 0 auto;">
+                                <img src="${theme.backgroundImage}" alt="Background Pattern" style="width: 200px; height: auto; border: 1px solid #ccc; border-radius: 4px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <p>This background pattern will be applied as a tiled background to your chat overlay.</p>
+                                <button id="applyBackgroundBtn" style="background-color: #5e43bd; margin-top: 10px;">Apply Background to Preview</button>
+                            </div>
+                        </div>
+                    </div>` : ''}
+                `;
+            
+            document.getElementById('themeColors').innerHTML = themeColorsHtml;
+            document.getElementById('preview').style.display = 'block';
+            
+            // Add event listener for the "Apply Background" button if it exists
+            if (theme.backgroundImage) {
+                setTimeout(() => {
+                    const applyBackgroundBtn = document.getElementById('applyBackgroundBtn');
+                    if (applyBackgroundBtn) {
+                        applyBackgroundBtn.addEventListener('click', () => {
+                            const chatPreviewContainer = document.getElementById('chatPreviewContainer');
+                            if (chatPreviewContainer) {
+                                chatPreviewContainer.style.backgroundImage = `url('${theme.backgroundImage}')`;
+                                chatPreviewContainer.style.backgroundSize = '200px';
+                                chatPreviewContainer.style.backgroundRepeat = 'repeat';
+                                applyBackgroundBtn.textContent = 'Background Applied!';
+                                applyBackgroundBtn.disabled = true;
+                            }
+                        });
+                    }
+                }, 100);
+            }
+        }
+        
         // Function to generate a theme based on the prompt
         async function generateTheme() {
             const prompt = document.getElementById('prompt').value.trim();
@@ -188,9 +416,33 @@
                         retrying = true;
                         attempt = data.attempt || attempt + 1;
                         console.log(`Retrying theme generation, attempt ${attempt}`);
+                        
+                        // Add the current theme to the carousel even during retries
+                        if (data.themeData) {
+                            console.log('Adding intermediate theme to carousel while retrying for image');
+                            addThemeToCarousel(data.themeData, null);
+                        }
+                        
                         // Short delay before retry
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
+                    }
+                    
+                    // If the server indicates max attempts were reached, stop retrying
+                    if (data.maxAttemptsReached || data.noImageAvailable) {
+                        console.log('Maximum retry attempts reached. Proceeding with theme data only (no background image).');
+                        document.getElementById('retryInfo').style.display = 'block';
+                        document.getElementById('retryInfo').textContent = 'Background image generation was unsuccessful after multiple attempts. Proceeding with theme data only.';
+                        
+                        // If we have a last successful theme and the current response doesn't have a theme, use that
+                        if (lastSuccessfulTheme && (!data.themeData || !data.backgroundImage)) {
+                            console.log('Using last successful theme with background image');
+                            // Make sure this successful theme is in the carousel
+                            addThemeToCarousel(lastSuccessfulTheme.themeData, lastSuccessfulTheme.backgroundImage);
+                        }
+                        
+                        // Short delay to show the message
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                     }
                     
                     // If we get here, we're not retrying anymore
@@ -219,7 +471,12 @@
                 const backgroundImage = finalData.backgroundImage;
                 if (backgroundImage) {
                     console.log('Background image available:', backgroundImage.mimeType);
+                    // Save this as our last successful theme with image
+                    lastSuccessfulTheme = { themeData, backgroundImage };
                 }
+                
+                // Add this theme to our carousel regardless of whether it has a background image
+                addThemeToCarousel(themeData, backgroundImage);
                 
                 // Show the preview
                 document.getElementById('themeName').innerHTML = `<h2>${themeData.theme_name}</h2>`;
@@ -454,6 +711,13 @@
         
         // Add event listener for the Generate button
         document.getElementById('generateBtn').addEventListener('click', generateTheme);
+
+        // Make sure the carousel is visible after page load if we already have themes
+        window.addEventListener('load', () => {
+            if (generatedThemes.length > 0) {
+                document.getElementById('theme-carousel').style.display = 'block';
+            }
+        });
         
         // Add event listener for Enter key in the prompt input
         document.getElementById('prompt').addEventListener('keydown', (event) => {

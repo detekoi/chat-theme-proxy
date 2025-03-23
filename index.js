@@ -106,20 +106,21 @@ app.post('/api/generate-theme', async (req, res) => {
     
     // If we're retrying, adjust the params to avoid RECITATION or to encourage image generation
     if (attempt > 0) {
-      // For image generation attempts (1-2), use higher temperature and lower topK  
+      // For image generation attempts (1-2), use higher temperature and topK/topP values  
       if (attempt === 1) {
-        temperature = 0.8; // Higher temperature to encourage creativity and image generation
+        temperature = 0.85; // Higher temperature to encourage creativity and image generation
         topK = 40;
         topP = 0.95;
-        prompt_prefix = 'IMPORTANT: Include a background image. Please use exactly this format: ';
+        prompt_prefix = 'IMPORTANT: You MUST include both a background image AND a JSON object. Use this format: ';
       } else if (attempt === 2) {
-        temperature = 0.9; // Even higher temperature on second attempt
+        // Use different parameters on second attempt for more variety
+        temperature = 0.7; // Try a different approach with lower temperature
         topK = 50;
         topP = 0.98;
-        prompt_prefix = 'YOU MUST INCLUDE A BACKGROUND IMAGE. RESPOND WITH ONLY A JSON OBJECT in this exact format: ';
+        prompt_prefix = 'YOU MUST INCLUDE A BACKGROUND IMAGE. GENERATE AN IMAGE AND A JSON OBJECT. Use this exact format: ';
       } else {
         // For higher attempts (3+), focus on getting valid JSON with lower temperature
-        temperature = 0.3; 
+        temperature = 0.4; 
         topK = 10;
         prompt_prefix = 'RESPOND WITH ONLY A JSON OBJECT in this exact format: ';
       }
@@ -172,13 +173,17 @@ Rules:
      - Intense 3D: For stronger depth and elevation
      - Sharp: For retro, pixel-art style shadows (8px offset)
 
-IMPORTANT: YOU MUST ALSO CREATE A BACKGROUND IMAGE. Generate a subtle tiled background pattern that matches this theme's aesthetic. The pattern should be:
-- Very small (around 128x128 pixels to minimize tokens)
-- Simple abstract pattern (minimal lines, dots, or geometric shapes)
-- Low contrast with a similar color palette to the background
-- Suitable for tiling (repeating seamlessly)
+IMPORTANT: YOU MUST CREATE A BACKGROUND IMAGE. Generate a small seamless pattern image with these requirements:
+- Basic abstract pattern (simple dots, lines, or subtle geometric shapes)
+- Very low contrast (nearly monochromatic, using colors similar to the background)
+- Extremely simple design with minimal elements
+- No text, no chat interface, no complex shapes
+- Keep pattern elements very small and minimal
+- Use only 2-3 colors maximum that are close to each other
+- Make the pattern very subtle and barely noticeable
+- Ensure the pattern can tile seamlessly
 
-This theme MUST include a background image. The image should be generated at a small size (128x128 pixels) to ensure it doesn't exceed token limits.`
+YOUR RESPONSE MUST INCLUDE BOTH A JSON OBJECT AND AN IMAGE. The image should be very small and simple to stay within token limits.`
           }]
         }],
         generationConfig: {
@@ -245,6 +250,28 @@ This theme MUST include a background image. The image should be generated at a s
       // Print the entire response structure for debugging
       console.log('FULL GEMINI RESPONSE:');
       console.log(JSON.stringify(response.data, null, 2));
+      
+      // Handle RECITATION finish reason specially
+      if (response.data.candidates && 
+          response.data.candidates.length > 0 && 
+          response.data.candidates[0].finishReason === 'RECITATION') {
+        console.log('Received RECITATION finish reason. Retrying with different parameters...');
+        
+        if (attempt < 2) {
+          // Try again with different parameters
+          return res.status(202).json({
+            retry: true,
+            message: 'Received RECITATION error. Retrying with different parameters...',
+            attempt: attempt + 1
+          });
+        } else {
+          // After max retries, return a meaningful error
+          return res.status(400).json({
+            error: 'Model returned RECITATION error repeatedly',
+            maxAttemptsReached: true
+          });
+        }
+      }
       
       // Process each part of the response
       if (response.data.candidates && response.data.candidates.length > 0) {
@@ -319,13 +346,18 @@ This theme MUST include a background image. The image should be generated at a s
       if (themeData) {
         // Check if we have a background image - if not and this isn't a high-attempt retry, try again
         if (!backgroundImage && attempt < 2) {
-          console.log('No background image was generated. Retrying with increased temperature...');
-          // Retry with modified parameters to encourage image generation
+          console.log(`No background image was generated. Retrying with increased temperature... (attempt ${attempt + 1})`);
+          // Retry with modified parameters to encourage image generation but also return the theme data
+          // This allows clients to show intermediate themes while waiting for one with an image
           return res.status(202).json({
             retry: true,
-            message: "No background image was generated. Retrying...",
-            attempt: attempt + 1
+            message: `No background image was generated. Retrying (attempt ${attempt + 1}/2)...`,
+            attempt: attempt + 1,
+            themeData: themeData // Include the theme data so client can use it while retrying
           });
+        } else if (!backgroundImage) {
+          // After all retries, proceed with the theme data without an image
+          console.log('No background image was generated after multiple attempts. Proceeding with theme data only.');
         }
         
         // Validate that the font exists in our list
@@ -376,13 +408,31 @@ This theme MUST include a background image. The image should be generated at a s
         
         // Return properly structured response with themeData
         console.log(`Successfully formatted response with theme "${themeData.theme_name}" and ${backgroundImage ? 'background image' : 'no background image'}`);
+        
+        // If we've made the maximum number of attempts but still don't have an image,
+        // add that information to the response so clients know not to wait for an image
+        const maxAttemptsReached = attempt >= 2 && !backgroundImage;
+        
         return res.json({
           themeData: themeData,
-          backgroundImage: backgroundImage
+          backgroundImage: backgroundImage,
+          maxAttemptsReached: maxAttemptsReached,
+          noImageAvailable: maxAttemptsReached
         });
       }
       
-      // If we can't extract valid JSON, return a detailed error to support retry logic
+      // If we can't extract valid JSON but we have an existing theme and less than max retries,
+      // retry with different params
+      if (attempt < 2) {
+        console.log(`No valid theme data in response. Retrying with increased temperature... (attempt ${attempt + 1})`);
+        return res.status(202).json({
+          retry: true,
+          message: `No valid theme data received. Retrying (attempt ${attempt + 1}/2)...`,
+          attempt: attempt + 1
+        });
+      }
+      
+      // If we've already retried the max number of times, return an error
       return res.status(400).json({ 
         error: 'Could not parse theme data from Gemini response',
         responseData: {
@@ -392,7 +442,8 @@ This theme MUST include a background image. The image should be generated at a s
           hasContent: hasContent,
           hasText: hasText,
           hasImage: hasImage
-        }
+        },
+        maxAttemptsReached: true
       });
     } catch (jsonError) {
       console.error('Error parsing theme JSON or extracting image:', jsonError);
