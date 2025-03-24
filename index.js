@@ -131,20 +131,20 @@ app.post('/api/generate-theme', async (req, res) => {
     if (attempt > 0) {
       // Use a strategy to avoid RECITATION errors with varied parameters on each attempt
       if (attempt === 1) {
-        // First retry - use moderate temperature
-        temperature = 0.65; 
+        // First retry - use high temperature
+        temperature = 1.1; // Experimental: temperature above 1
         topK = 32;
         topP = 0.92;
         prompt_prefix = 'Design a Twitch theme with both a small background pattern image AND a JSON object. ';
       } else if (attempt === 2) {
         // Second retry - completely different approach with lower temperature
-        temperature = 0.4; 
+        temperature = 0.4;
         topK = 40;
         topP = 0.85;
         prompt_prefix = 'Create a small pattern image and also a JSON theme. For the theme use this exact format: ';
       } else {
         // For higher attempts (3+), focus on getting valid JSON with different parameters
-        temperature = 0.3; 
+        temperature = 0.3;
         topK = 20;
         topP = 0.8;
         prompt_prefix = 'RESPOND WITH ONLY A JSON OBJECT in this exact format: ';
@@ -175,8 +175,8 @@ For the JSON part:
 }
 
 First, create a small pattern image:
-- Simple abstract pattern (dots, lines, or shapes)
-- Low contrast
+- Simple pattern
+- Low contrast so text above it is readable
 - Simple design, minimal elements
 - 2-3 colors maximum
 - Can tile seamlessly
@@ -192,14 +192,14 @@ Quick font guide:
 - Classic: EB Garamond, Georgia, Times New Roman
 
 Border radius guide:
-- None (0px): Sharp designs
+- None (0px): Sharp or pixelated designs
 - Subtle (8px): Slightly soft corners
 - Rounded (16px): Modern interfaces
 - Pill (24px): Playful designs
 
 Box shadow guide:
 - None: Flat designs
-- Soft: Subtle elevation
+- Soft: Subtle 360 spread
 - Simple 3D: Light layering
 - Intense 3D: Strong depth
 - Sharp: Pixel-art style
