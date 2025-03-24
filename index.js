@@ -24,6 +24,9 @@ const PORT = process.env.PORT || 8091;
 // Get API key from environment variable
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// Enable verbose logging
+const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true' || true;
+
 // Define border radius presets
 const borderRadiusPresets = {
   "None": "0px",
@@ -87,13 +90,31 @@ const generateThemeStorageKey = (themeId) => `generated-theme-image-${themeId}`;
 // Define theme generation endpoint
 app.post('/api/generate-theme', async (req, res) => {
   try {
-    const { prompt, attempt = 0, forceJson = false } = req.body;
+    const { prompt, attempt = 0, forceJson = false, previousThemeData } = req.body;
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     
     console.log(`Processing theme generation request for prompt: "${prompt}", attempt: ${attempt}, forceJson: ${forceJson}`);
+    
+    // Log additional details for debugging
+    if (VERBOSE_LOGGING) {
+      console.log(`Request body: ${JSON.stringify({
+        prompt,
+        attempt,
+        forceJson,
+        hasPreviousTheme: !!previousThemeData,
+        previousThemeName: previousThemeData ? previousThemeData.theme_name : null
+      })}`);
+      
+      // Log client headers for debugging connection issues
+      console.log('Client headers:', {
+        'user-agent': req.headers['user-agent'],
+        'content-type': req.headers['content-type'],
+        'accept': req.headers.accept
+      });
+    }
     
     // Generate list of available font names for the prompt
     const fontOptions = availableFonts.map(font => `'${font.name}'`).join(', ');
@@ -103,25 +124,29 @@ app.post('/api/generate-theme', async (req, res) => {
     let topK = 20;
     let topP = 0.9;
     let prompt_prefix = '';
+    // Generate a random seed based on timestamp and attempt number to prevent RECITATION
+    const randomSeed = Math.floor(Date.now() % 1000000) + (attempt * 10000);
     
     // If we're retrying, adjust the params to avoid RECITATION or to encourage image generation
     if (attempt > 0) {
-      // For image generation attempts (1-2), use higher temperature and topK/topP values  
+      // Use a strategy to avoid RECITATION errors with varied parameters on each attempt
       if (attempt === 1) {
-        temperature = 0.85; // Higher temperature to encourage creativity and image generation
-        topK = 40;
-        topP = 0.95;
-        prompt_prefix = 'IMPORTANT: You MUST include both a background image AND a JSON object. Use this format: ';
+        // First retry - use moderate temperature
+        temperature = 0.65; 
+        topK = 32;
+        topP = 0.92;
+        prompt_prefix = 'Design a Twitch theme with both a small background pattern image AND a JSON object. ';
       } else if (attempt === 2) {
-        // Use different parameters on second attempt for more variety
-        temperature = 0.7; // Try a different approach with lower temperature
-        topK = 50;
-        topP = 0.98;
-        prompt_prefix = 'YOU MUST INCLUDE A BACKGROUND IMAGE. GENERATE AN IMAGE AND A JSON OBJECT. Use this exact format: ';
-      } else {
-        // For higher attempts (3+), focus on getting valid JSON with lower temperature
+        // Second retry - completely different approach with lower temperature
         temperature = 0.4; 
-        topK = 10;
+        topK = 40;
+        topP = 0.85;
+        prompt_prefix = 'Create a small pattern image and also a JSON theme. For the theme use this exact format: ';
+      } else {
+        // For higher attempts (3+), focus on getting valid JSON with different parameters
+        temperature = 0.3; 
+        topK = 20;
+        topP = 0.8;
         prompt_prefix = 'RESPOND WITH ONLY A JSON OBJECT in this exact format: ';
       }
       
@@ -134,62 +159,59 @@ app.post('/api/generate-theme', async (req, res) => {
       {
         contents: [{
           parts: [{
-            text: `${prompt_prefix}You are a design assistant that creates Twitch chat themes based on user prompts. Create a visually appealing Twitch chat theme based on: "${prompt}". The theme should be cohesive and convey the vibe/aesthetic of this prompt.
+            text: `${prompt_prefix}Create a visually appealing Twitch chat theme for: "${prompt}". 
 
-YOU MUST RESPOND WITH VALID JSON. NOTHING ELSE. Create this JSON object with these EXACT fields and nothing else:
-
+For the JSON part:
 {
-  "theme_name": "[A short catchy name for this theme]",
+  "theme_name": "[catchy name]",
   "background_color": "[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]",
-  "border_color": "[hex color or 'transparent' - e.g., #ff6bcb]",
+  "border_color": "[hex color - e.g., #ff6bcb]",
   "text_color": "[hex color for chat text - e.g., #efeff1]",
   "username_color": "[hex color for usernames - e.g., #9147ff]",
-  "font_family": "[One of these font names: ${fontOptions}]",
-  "border_radius": "[Choose one: None, Subtle, Rounded, Pill]",
-  "box_shadow": "[Choose one: None, Soft, Simple 3D, Intense 3D, Sharp]",
-  "description": "[A short 1-2 sentence description of the theme]"
+  "font_family": "[One of: ${fontOptions}]",
+  "border_radius": "[One of: None, Subtle, Rounded, Pill]",
+  "box_shadow": "[One of: None, Soft, Simple 3D, Intense 3D, Sharp]",
+  "description": "[brief description]"
 }
 
-Rules:
-1. Respond ONLY with the JSON object described above.
-2. Do NOT add any other text.
-3. Make sure the colors work well together and match the aesthetic of "${prompt}".
-4. When choosing fonts, consider:
-   - For modern/tech themes: 'Tektur', 'Consolas', 'System UI'
-   - For fantasy/medieval: 'MedievalSharp', 'Jacquard', 'EB Garamond'
-   - For gaming/retro: 'Press Start 2P', 'Jacquard', 'Impact'
-   - For readability: 'Atkinson Hyperlegible', 'Verdana', 'System UI'
-   - For classic/elegant: 'EB Garamond', 'Georgia', 'Times New Roman'
-5. Choose appropriate border radius and box shadow styles to match the theme:
-   - Border Radius options:
-     - None (0px): For sharp, angular designs
-     - Subtle (8px): For slightly softened corners
-     - Rounded (16px): For modern, friendly interfaces
-     - Pill (24px): For playful, bubbly designs
-   - Box Shadow options:
-     - None: For flat, minimal designs
-     - Soft: For subtle elevation (rgba(99, 99, 99, 0.2) 0px 2px 8px 0px)
-     - Simple 3D: For light layering effect
-     - Intense 3D: For stronger depth and elevation
-     - Sharp: For retro, pixel-art style shadows (8px offset)
+First, create a small pattern image:
+- Simple abstract pattern (dots, lines, or shapes)
+- Low contrast
+- Simple design, minimal elements
+- 2-3 colors maximum
+- Can tile seamlessly
+- No text or complex elements
 
-IMPORTANT: YOU MUST CREATE A BACKGROUND IMAGE. Generate a small seamless pattern image with these requirements:
-- Basic abstract pattern (simple dots, lines, or subtle geometric shapes)
-- Very low contrast (nearly monochromatic, using colors similar to the background)
-- Extremely simple design with minimal elements
-- No text, no chat interface, no complex shapes
-- Keep pattern elements very small and minimal
-- Use only 2-3 colors maximum that are close to each other
-- Make the pattern very subtle and barely noticeable
-- Ensure the pattern can tile seamlessly
+Then create the JSON object with the theme settings.
 
-YOUR RESPONSE MUST INCLUDE BOTH A JSON OBJECT AND AN IMAGE. The image should be very small and simple to stay within token limits.`
+Quick font guide:
+- Modern/tech: Tektur, Consolas, System UI
+- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond
+- Gaming/retro: Press Start 2P, Jacquard, Impact
+- Readable: Atkinson Hyperlegible, Verdana
+- Classic: EB Garamond, Georgia, Times New Roman
+
+Border radius guide:
+- None (0px): Sharp designs
+- Subtle (8px): Slightly soft corners
+- Rounded (16px): Modern interfaces
+- Pill (24px): Playful designs
+
+Box shadow guide:
+- None: Flat designs
+- Soft: Subtle elevation
+- Simple 3D: Light layering
+- Intense 3D: Strong depth
+- Sharp: Pixel-art style
+
+Your response should include both an image and the JSON theme data.`
           }]
         }],
         generationConfig: {
           temperature: temperature,
           topK: topK,
           topP: topP,
+          seed: randomSeed, // Add random seed to prevent RECITATION errors
           maxOutputTokens: 2048, // Increased token limit to allow for image generation
           responseModalities: ['text', 'image'] // Enable image generation
         }
@@ -249,7 +271,7 @@ YOUR RESPONSE MUST INCLUDE BOTH A JSON OBJECT AND AN IMAGE. The image should be 
       
       // Print the entire response structure for debugging
       console.log('FULL GEMINI RESPONSE:');
-      console.log(JSON.stringify(response.data, null, 2));
+      console.log(JSON.stringify(response.data, null, 4));
       
       // Handle RECITATION finish reason specially
       if (response.data.candidates && 
@@ -258,12 +280,38 @@ YOUR RESPONSE MUST INCLUDE BOTH A JSON OBJECT AND AN IMAGE. The image should be 
         console.log('Received RECITATION finish reason. Retrying with different parameters...');
         
         if (attempt < 2) {
-          // Try again with different parameters
-          return res.status(202).json({
+          // Try again with completely different parameters for next attempt
+          const nextAttempt = attempt + 1;
+          
+          // Use a more drastic change in parameters when we get a RECITATION error
+          if (nextAttempt === 1) {
+            // First retry after RECITATION should use very different params
+            temperature = 0.3; // Much lower temperature
+            topK = 60;  // Much higher topK
+            topP = 0.7; // Lower topP
+          } else {
+            // Second retry after RECITATION
+            temperature = 0.7; // Try going higher instead
+            topK = 10;  // Much lower topK
+            topP = 0.95; // Higher topP
+          }
+          
+          console.log(`RECITATION error - next attempt will use: temp=${temperature}, topK=${topK}, topP=${topP}, seed=${randomSeed + 12345}`);
+          
+          // Try again with different parameters, but include any previous theme data if we have it
+          const responseData = {
             retry: true,
             message: 'Received RECITATION error. Retrying with different parameters...',
-            attempt: attempt + 1
-          });
+            attempt: nextAttempt
+          };
+          
+          // Check if we had a successful previous attempt and include that theme
+          if (attempt > 0 && req.body.previousThemeData) {
+            responseData.themeData = req.body.previousThemeData;
+            console.log('Included previous theme data with retry response');
+          }
+          
+          return res.status(202).json(responseData);
         } else {
           // After max retries, return a meaningful error
           return res.status(400).json({
@@ -277,59 +325,98 @@ YOUR RESPONSE MUST INCLUDE BOTH A JSON OBJECT AND AN IMAGE. The image should be 
       if (response.data.candidates && response.data.candidates.length > 0) {
         const parts = response.data.candidates[0]?.content?.parts || [];
         
+        let extractedThemeData = null;
+        
         for (const part of parts) {
           // If it's text, try to extract JSON
           if (part.text) {
             console.log('Found text part in response');
             
             // Try different patterns to extract JSON
-            // 1. Standard regex pattern
-            const jsonMatch = part.text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              try {
-                themeData = JSON.parse(jsonMatch[0]);
-                console.log('Successfully parsed theme data (method 1):', themeData.theme_name);
-              } catch (e) {
-                console.error('Failed to parse JSON from text (method 1):', e.message);
+            // Look for patterns that look like JSON objects
+            const jsonPatterns = [
+              // Standard full JSON pattern
+              /\{[\s\S]*?\}/g,
+              // Relaxed pattern to find partial JSON
+              /\{\s*"theme_name"[\s\S]*?\}/g,
+              // Another approach looking for the full structure
+              /\{\s*"theme_name"[\s\S]*"description"[\s\S]*?\}/g
+            ];
+            
+            let foundValidJson = false;
+            
+            // Try each pattern in turn
+            for (const pattern of jsonPatterns) {
+              if (foundValidJson) break;
+              
+              const matches = part.text.match(pattern);
+              if (matches && matches.length > 0) {
+                // Try each match, starting with the longest (most likely to be complete)
+                const sortedMatches = [...matches].sort((a, b) => b.length - a.length);
                 
-                // Try some fallback methods
-                try {
-                  // 2. Try to find just the start and end of a JSON object
-                  const startIdx = part.text.indexOf('{');
-                  const endIdx = part.text.lastIndexOf('}');
-                  
-                  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-                    const jsonStr = part.text.substring(startIdx, endIdx + 1);
-                    themeData = JSON.parse(jsonStr);
-                    console.log('Successfully parsed theme data (method 2):', themeData.theme_name);
-                  }
-                } catch (e2) {
-                  console.error('Failed to parse JSON from text (method 2):', e2.message);
-                  
-                  // 3. Try with a more aggressive cleanup
+                for (const match of sortedMatches) {
                   try {
-                    // Remove any non-JSON content outside the braces
-                    if (startIdx !== -1 && endIdx !== -1) {
-                      let jsonStr = part.text.substring(startIdx, endIdx + 1);
+                    // Clean up the JSON string before parsing
+                    let jsonStr = match;
+                    
+                    // Try to fix common JSON issues
+                    // Replace non-standard quotes
+                    jsonStr = jsonStr.replace(/[""]/g, '"');
+                    // Fix missing quotes around keys
+                    jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+                    // Replace unescaped backslashes
+                    jsonStr = jsonStr.replace(/([^\\])\\([^"\\\/bfnrtu])/g, '$1\\\\$2');
+                    
+                    // Parse the JSON
+                    extractedThemeData = JSON.parse(jsonStr);
+                    
+                    // Validate that it has the expected fields
+                    if (extractedThemeData.theme_name && 
+                        extractedThemeData.background_color && 
+                        extractedThemeData.text_color) {
                       
-                      // Replace any potential invalid characters that might break JSON parsing
-                      jsonStr = jsonStr.replace(/\\n/g, '\n')
-                                       .replace(/\\r/g, '\r')
-                                       .replace(/\\t/g, '\t')
-                                       .replace(/\\'/g, "'")
-                                       .replace(/\\\"/g, '"');
-                                       
-                      themeData = JSON.parse(jsonStr);
-                      console.log('Successfully parsed theme data (method 3):', themeData.theme_name);
+                      themeData = extractedThemeData; // Set this immediately to ensure we have it even for retries
+                      console.log('Successfully parsed theme data:', themeData.theme_name);
+                      foundValidJson = true;
+                      break;
+                    } else {
+                      console.log('Found parseable JSON but missing required fields, continuing search');
                     }
-                  } catch (e3) {
-                    console.error('Failed to parse JSON from text (method 3):', e3.message);
-                    // All parsing attempts failed
+                  } catch (e) {
+                    console.log(`JSON parsing failed for match: ${e.message}`);
+                    // Continue to the next match
                   }
                 }
               }
-            } else {
-              console.warn('No JSON pattern found in text part');
+            }
+            
+            // If all pattern matching failed, try one last approach
+            if (!foundValidJson) {
+              try {
+                // Try to find just the start and end of a JSON object
+                const startIdx = part.text.indexOf('{');
+                const endIdx = part.text.lastIndexOf('}');
+                
+                if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+                  let jsonStr = part.text.substring(startIdx, endIdx + 1);
+                  
+                  // Apply the same cleanup as above
+                  jsonStr = jsonStr.replace(/[""]/g, '"');
+                  jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+                  jsonStr = jsonStr.replace(/([^\\])\\([^"\\\/bfnrtu])/g, '$1\\\\$2');
+                  
+                  themeData = JSON.parse(jsonStr);
+                  console.log('Successfully parsed theme data using brute force method:', themeData.theme_name);
+                }
+              } catch (e3) {
+                console.error('All JSON parsing methods failed:', e3.message);
+                // All parsing attempts failed
+              }
+            }
+            
+            // Log the failure if we couldn't find valid JSON
+            if (!themeData) {
+              console.warn('No valid JSON object found in text part');
               console.log('Text content sample:', part.text.substring(0, 200) + '...');
             }
           } // Close if part.text
@@ -347,13 +434,25 @@ YOUR RESPONSE MUST INCLUDE BOTH A JSON OBJECT AND AN IMAGE. The image should be 
         // Check if we have a background image - if not and this isn't a high-attempt retry, try again
         if (!backgroundImage && attempt < 2) {
           console.log(`No background image was generated. Retrying with increased temperature... (attempt ${attempt + 1})`);
+          
+          // Add CSS values to theme data for consistent experience between attempts
+          themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
+          themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
+          
+          // Debug output for the theme data 
+          console.log('Theme data for retry:', JSON.stringify({
+            theme_name: themeData.theme_name,
+            containsValues: !!themeData.border_radius_value
+          }));
+          
           // Retry with modified parameters to encourage image generation but also return the theme data
           // This allows clients to show intermediate themes while waiting for one with an image
           return res.status(202).json({
             retry: true,
             message: `No background image was generated. Retrying (attempt ${attempt + 1}/2)...`,
             attempt: attempt + 1,
-            themeData: themeData // Include the theme data so client can use it while retrying
+            themeData: themeData, // Include the theme data so client can use it while retrying
+            includesThemeData: true // Extra flag to make it super obvious we have theme data
           });
         } else if (!backgroundImage) {
           // After all retries, proceed with the theme data without an image

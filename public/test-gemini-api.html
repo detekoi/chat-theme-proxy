@@ -6,6 +6,70 @@
     <title>Test Theme Generator API</title>
     <link rel="stylesheet" href="styles.css">
     <style>
+        /* Load custom fonts */
+        @font-face {
+            font-family: 'Atkinson Hyperlegible';
+            src: url('/assets/fonts/AtkinsonHyperlegible-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Atkinson Hyperlegible';
+            src: url('/assets/fonts/AtkinsonHyperlegible-Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'Atkinson Hyperlegible';
+            src: url('/assets/fonts/AtkinsonHyperlegible-Italic.ttf') format('truetype');
+            font-weight: normal;
+            font-style: italic;
+        }
+        
+        @font-face {
+            font-family: 'Atkinson Hyperlegible';
+            src: url('/assets/fonts/AtkinsonHyperlegible-BoldItalic.ttf') format('truetype');
+            font-weight: bold;
+            font-style: italic;
+        }
+        
+        @font-face {
+            font-family: 'Tektur';
+            src: url('/assets/fonts/Tektur-VariableFont_wdth,wght.ttf') format('truetype-variations');
+            font-weight: 100 900;
+        }
+        
+        @font-face {
+            font-family: 'MedievalSharp';
+            src: url('/assets/fonts/MedievalSharp-Regular.ttf') format('truetype');
+        }
+        
+        @font-face {
+            font-family: 'Press Start 2P';
+            src: url('/assets/fonts/PressStart2P-Regular.txt.ttf') format('truetype');
+        }
+        
+        @font-face {
+            font-family: 'Jacquard';
+            src: url('/assets/fonts/Jacquard12-Regular.ttf') format('truetype');
+        }
+        
+        @font-face {
+            font-family: 'EB Garamond';
+            src: url('/assets/fonts/EBGaramond-VariableFont_wght.ttf') format('truetype-variations');
+            font-weight: 100 900;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'EB Garamond';
+            src: url('/assets/fonts/EBGaramond-Italic-VariableFont_wght.ttf') format('truetype-variations');
+            font-weight: 100 900;
+            font-style: italic;
+        }
+        
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
@@ -128,7 +192,7 @@
             cursor: pointer;
             padding: 10px;
             font-weight: bold;
-            background-size: auto;
+            background-size: 200px;
             background-repeat: repeat;
             color: #fff;
             text-shadow: 0 0 4px rgba(0,0,0,0.8);
@@ -243,6 +307,8 @@
                 // Apply background image if available
                 if (theme.backgroundImage) {
                     card.style.backgroundImage = `url('${theme.backgroundImage}')`;
+                    card.style.backgroundSize = '200px';
+                    card.style.backgroundRepeat = 'repeat';
                     
                     // Add an icon to indicate it has an image
                     const imageIcon = document.createElement('div');
@@ -291,23 +357,30 @@
                         <div style="width: 100px; font-weight: bold;">Font:</div>
                         <div>
                             <div><strong>${theme.font_family}</strong></div>
+                            <div id="fontStack"><code style="font-size: 0.85em; display: block; margin-top: 3px;"></code></div>
                         </div>
+                    </div>
+                    <div style="display: flex; margin-bottom: 10px; align-items: center;">
+                        <div style="width: 100px; font-weight: bold;">Font sample:</div>
+                        <div id="fontSample" style="font-family: ${theme.font_family}; font-size: 18px;">The quick brown fox jumps over the lazy dog</div>
                     </div>
                     
                     <div style="display: flex; margin-bottom: 10px; align-items: center;">
                         <div style="width: 100px; font-weight: bold;">Border Radius:</div>
                         <div>
                             <div><strong>${theme.border_radius || 'Subtle'}</strong></div>
+                            <div><code style="font-size: 0.85em; display: block; margin-top: 3px;">${theme.border_radius_value || '8px'}</code></div>
                         </div>
                     </div>
                     <div style="display: flex; margin-bottom: 10px; align-items: center;">
                         <div style="width: 100px; font-weight: bold;">Box Shadow:</div>
                         <div>
                             <div><strong>${theme.box_shadow || 'Soft'}</strong></div>
+                            <div><code style="font-size: 0.85em; display: block; margin-top: 3px;">${theme.box_shadow_value ? (theme.box_shadow_value.length > 30 ? theme.box_shadow_value.substring(0, 30) + '...' : theme.box_shadow_value) : 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}</code></div>
                         </div>
                     </div>
 
-                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${theme.border_radius_value || '8px'}; background-color: ${theme.background_color}; border: 2px solid ${theme.border_color}; box-shadow: ${theme.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}">
+                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${theme.border_radius_value || '8px'}; background-color: ${theme.background_color}; border: 2px solid ${theme.border_color}; box-shadow: ${theme.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}; ${theme.backgroundImage ? `background-image: url('${theme.backgroundImage}'); background-size: 200px; background-repeat: repeat;` : ''}">
                         <div style="margin-bottom: 10px;">
                             <span style="color: #808080; font-size: 0.85em;">12:34</span>
                             <span style="color: ${theme.username_color}; font-weight: bold;">Username:</span>
@@ -328,8 +401,7 @@
                                 <img src="${theme.backgroundImage}" alt="Background Pattern" style="width: 200px; height: auto; border: 1px solid #ccc; border-radius: 4px;">
                             </div>
                             <div style="flex: 1;">
-                                <p>This background pattern will be applied as a tiled background to your chat overlay.</p>
-                                <button id="applyBackgroundBtn" style="background-color: #5e43bd; margin-top: 10px;">Apply Background to Preview</button>
+                                <p>This background pattern has been automatically applied to your chat preview above.</p>
                             </div>
                         </div>
                     </div>` : ''}
@@ -338,23 +410,44 @@
             document.getElementById('themeColors').innerHTML = themeColorsHtml;
             document.getElementById('preview').style.display = 'block';
             
-            // Add event listener for the "Apply Background" button if it exists
-            if (theme.backgroundImage) {
-                setTimeout(() => {
-                    const applyBackgroundBtn = document.getElementById('applyBackgroundBtn');
-                    if (applyBackgroundBtn) {
-                        applyBackgroundBtn.addEventListener('click', () => {
-                            const chatPreviewContainer = document.getElementById('chatPreviewContainer');
-                            if (chatPreviewContainer) {
-                                chatPreviewContainer.style.backgroundImage = `url('${theme.backgroundImage}')`;
-                                chatPreviewContainer.style.backgroundSize = '200px';
-                                chatPreviewContainer.style.backgroundRepeat = 'repeat';
-                                applyBackgroundBtn.textContent = 'Background Applied!';
-                                applyBackgroundBtn.disabled = true;
-                            }
-                        });
-                    }
-                }, 100);
+            // Apply font stack to font sample
+            const fontMap = {
+                "Consolas": "Consolas, monaco, monospace",
+                "EB Garamond": "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif",
+                "Times New Roman": "'Times New Roman', Times, serif",
+                "Georgia": "Georgia, serif",
+                "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+                "Arial": "Arial, sans-serif", 
+                "Helvetica": "Helvetica, Arial, sans-serif",
+                "Verdana": "Verdana, Geneva, sans-serif",
+                "Tahoma": "Tahoma, Geneva, sans-serif",
+                "Trebuchet MS": "'Trebuchet MS', sans-serif",
+                "Calibri": "Calibri, sans-serif",
+                "Courier New": "'Courier New', Courier, monospace",
+                "Lucida Console": "'Lucida Console', Monaco, monospace",
+                "Impact": "'Impact', Haettenschweiler, sans-serif",
+                "Comic Sans MS": "'Comic Sans MS', cursive",
+                "Arial Black": "'Arial Black', Gadget, sans-serif",
+                "System UI": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                "Atkinson Hyperlegible": "'Atkinson Hyperlegible', sans-serif",
+                "Tektur": "'Tektur', sans-serif",
+                "Medieval Sharp": "'MedievalSharp', cursive",
+                "MedievalSharp": "'MedievalSharp', cursive",
+                "Press Start 2P": "'Press Start 2P', cursive",
+                "Jacquard 12": "'Jacquard', monospace",
+                "Jacquard": "'Jacquard', monospace"
+            };
+            
+            // Set the displayed font stack in the UI
+            const fontStackElement = document.querySelector('#fontStack code');
+            if (fontStackElement) {
+                fontStackElement.textContent = fontMap[theme.font_family] || theme.font_family;
+            }
+            
+            // Apply the correct font family to the font sample
+            const fontSample = document.getElementById('fontSample');
+            if (fontSample) {
+                fontSample.style.fontFamily = fontMap[theme.font_family] || theme.font_family;
             }
         }
         
@@ -533,7 +626,7 @@
                         </div>
                     </div>
 
-                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${themeData.border_radius_value || '8px'}; background-color: ${themeData.background_color}; border: 2px solid ${themeData.border_color}; box-shadow: ${themeData.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}">
+                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${themeData.border_radius_value || '8px'}; background-color: ${themeData.background_color}; border: 2px solid ${themeData.border_color}; box-shadow: ${themeData.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}; ${backgroundImage ? `background-image: url(data:${backgroundImage.mimeType};base64,${backgroundImage.data}); background-size: 200px; background-repeat: repeat;` : ''}">
                         <div id="chatMessage1" style="margin-bottom: 10px;">
                             <span style="color: #808080; font-size: 0.85em;">12:34</span>
                             <span style="color: ${themeData.username_color}; font-weight: bold;">Username:</span>
@@ -554,8 +647,7 @@
                                 <img src="data:${backgroundImage.mimeType};base64,${backgroundImage.data}" alt="Background Pattern" style="width: 200px; height: auto; border: 1px solid #ccc; border-radius: 4px;">
                             </div>
                             <div style="flex: 1;">
-                                <p>This background pattern will be applied as a tiled background to your chat overlay.</p>
-                                <button id="applyBackgroundBtn" style="background-color: #5e43bd; margin-top: 10px;">Apply Background to Preview</button>
+                                <p>This background pattern has been automatically applied to your chat preview above.</p>
                             </div>
                         </div>
                     </div>` : ''}
@@ -603,8 +695,10 @@
                         "Atkinson Hyperlegible": "'Atkinson Hyperlegible', sans-serif",
                         "Tektur": "'Tektur', sans-serif",
                         "Medieval Sharp": "'MedievalSharp', cursive",
+                        "MedievalSharp": "'MedievalSharp', cursive",
                         "Press Start 2P": "'Press Start 2P', cursive",
-                        "Jacquard 12": "'Jacquard', monospace"
+                        "Jacquard 12": "'Jacquard', monospace",
+                        "Jacquard": "'Jacquard', monospace"
                     };
                     
                     // Get the font stack from our map, or fallback to the font name
@@ -623,25 +717,31 @@
                 
                 // Apply to the font sample
                 const fontSample = document.getElementById('fontSample');
-                fontSample.innerHTML = '';
-                fontSample.appendChild(createFontElement(
-                    "The quick brown fox jumps over the lazy dog", 
-                    { fontSize: '18px' }
-                ));
+                if (fontSample) {
+                    fontSample.innerHTML = '';
+                    fontSample.appendChild(createFontElement(
+                        "The quick brown fox jumps over the lazy dog", 
+                        { fontSize: '18px' }
+                    ));
+                }
                 
                 // Apply to the first chat message
                 const msg1 = document.getElementById('chatMessage1');
-                msg1.innerHTML = '';
-                msg1.appendChild(createFontElement("12:34 ", { color: '#808080', fontSize: '0.85em' }));
-                msg1.appendChild(createFontElement("Username: ", { color: themeData.username_color, fontWeight: 'bold' }));
-                msg1.appendChild(createFontElement("This is a sample chat message", { color: themeData.text_color }));
+                if (msg1) {
+                    msg1.innerHTML = '';
+                    msg1.appendChild(createFontElement("12:34 ", { color: '#808080', fontSize: '0.85em' }));
+                    msg1.appendChild(createFontElement("Username: ", { color: themeData.username_color, fontWeight: 'bold' }));
+                    msg1.appendChild(createFontElement("This is a sample chat message", { color: themeData.text_color }));
+                }
                 
                 // Apply to the second chat message
                 const msg2 = document.getElementById('chatMessage2');
-                msg2.innerHTML = '';
-                msg2.appendChild(createFontElement("12:35 ", { color: '#808080', fontSize: '0.85em' }));
-                msg2.appendChild(createFontElement("AnotherUser: ", { color: themeData.username_color, fontWeight: 'bold' }));
-                msg2.appendChild(createFontElement("This is how your chat will look with the theme!", { color: themeData.text_color }));
+                if (msg2) {
+                    msg2.innerHTML = '';
+                    msg2.appendChild(createFontElement("12:35 ", { color: '#808080', fontSize: '0.85em' }));
+                    msg2.appendChild(createFontElement("AnotherUser: ", { color: themeData.username_color, fontWeight: 'bold' }));
+                    msg2.appendChild(createFontElement("This is how your chat will look with the theme!", { color: themeData.text_color }));
+                }
                 
                 // Get the font map value for display in the UI
                 const fontMap = {
@@ -680,24 +780,7 @@
                 // Add success message
                 outputElem.innerHTML = `<span class="success">Successfully generated theme!</span>\n\n${outputElem.textContent}`;
                 
-                // Add event listener for the "Apply Background" button if it exists
-                if (backgroundImage) {
-                    setTimeout(() => {
-                        const applyBackgroundBtn = document.getElementById('applyBackgroundBtn');
-                        if (applyBackgroundBtn) {
-                            applyBackgroundBtn.addEventListener('click', () => {
-                                const chatPreviewContainer = document.getElementById('chatPreviewContainer');
-                                if (chatPreviewContainer) {
-                                    chatPreviewContainer.style.backgroundImage = `url(data:${backgroundImage.mimeType};base64,${backgroundImage.data})`;
-                                    chatPreviewContainer.style.backgroundSize = '200px';
-                                    chatPreviewContainer.style.backgroundRepeat = 'repeat';
-                                    applyBackgroundBtn.textContent = 'Background Applied!';
-                                    applyBackgroundBtn.disabled = true;
-                                }
-                            });
-                        }
-                    }, 100);
-                }
+                // Background is now applied automatically
                 
             } catch (error) {
                 console.error('Error generating theme:', error);
