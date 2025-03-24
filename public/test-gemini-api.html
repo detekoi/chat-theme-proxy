@@ -514,7 +514,7 @@
                     </div>
                     <div style="display: flex; margin-bottom: 10px; align-items: center;">
                         <div style="width: 100px; font-weight: bold;">Font sample:</div>
-                        <div id="fontSample" style="font-family: ${theme.font_family}; font-size: 18px;">The quick brown fox jumps over the lazy dog</div>
+                        <div id="fontSample" style="font-size: 18px;">The quick brown fox jumps over the lazy dog</div>
                     </div>
                     
                     <div style="display: flex; margin-bottom: 10px; align-items: center;">
@@ -601,7 +601,7 @@
             document.getElementById('themeColors').innerHTML = themeColorsHtml;
             document.getElementById('preview').style.display = 'block';
             
-            // Apply font stack to font sample
+            // Create a mapping of font names to CSS font stacks
             const fontMap = {
                 "Consolas": "Consolas, monaco, monospace",
                 "EB Garamond": "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif",
@@ -629,16 +629,57 @@
                 "Jacquard": "'Jacquard', monospace"
             };
             
+            // Get the font stack from our map, or fallback to the font name
+            const fontStack = fontMap[theme.font_family] || theme.font_family;
+            
             // Set the displayed font stack in the UI
             const fontStackElement = document.querySelector('#fontStack code');
             if (fontStackElement) {
-                fontStackElement.textContent = fontMap[theme.font_family] || theme.font_family;
+                fontStackElement.textContent = fontStack;
             }
             
             // Apply the correct font family to the font sample
             const fontSample = document.getElementById('fontSample');
             if (fontSample) {
-                fontSample.style.fontFamily = fontMap[theme.font_family] || theme.font_family;
+                fontSample.style.fontFamily = fontStack;
+            }
+            
+            // Create a dynamic style to properly set the font for chat messages
+            const styleId = 'dynamic-font-style';
+            let styleEl = document.getElementById(styleId);
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = styleId;
+                document.head.appendChild(styleEl);
+            }
+            
+            // Update the style to apply the font to all chat message elements
+            styleEl.textContent = `
+                .chat-content, 
+                .chat-message,
+                #chatMessage1,
+                #chatMessage2,
+                .chat-message span {
+                    font-family: ${fontStack};
+                }
+            `;
+            
+            // As a backup, also apply directly to each chat message element
+            const chatMessages = document.querySelectorAll('.chat-message, #chatMessage1, #chatMessage2');
+            chatMessages.forEach(msg => {
+                msg.style.fontFamily = fontStack;
+                
+                // Also apply to all spans within the message
+                const spans = msg.querySelectorAll('span');
+                spans.forEach(span => {
+                    span.style.fontFamily = fontStack;
+                });
+            });
+            
+            // Apply to the chat content container as well to ensure inheritance
+            const chatContent = document.querySelector('.chat-content');
+            if (chatContent) {
+                chatContent.style.fontFamily = fontStack;
             }
         }
         
@@ -911,41 +952,41 @@
                     document.head.appendChild(styleEl);
                 }
                 
+                // Use a direct mapping of font names to their CSS stacks
+                const fontMap = {
+                    "Consolas": "Consolas, monaco, monospace",
+                    "EB Garamond": "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif",
+                    "Times New Roman": "'Times New Roman', Times, serif",
+                    "Georgia": "Georgia, serif",
+                    "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
+                    "Arial": "Arial, sans-serif",
+                    "Helvetica": "Helvetica, Arial, sans-serif",
+                    "Verdana": "Verdana, Geneva, sans-serif",
+                    "Tahoma": "Tahoma, Geneva, sans-serif",
+                    "Trebuchet MS": "'Trebuchet MS', sans-serif",
+                    "Calibri": "Calibri, sans-serif",
+                    "Courier New": "'Courier New', Courier, monospace",
+                    "Lucida Console": "'Lucida Console', Monaco, monospace",
+                    "Impact": "'Impact', Haettenschweiler, sans-serif",
+                    "Comic Sans MS": "'Comic Sans MS', cursive",
+                    "Arial Black": "'Arial Black', Gadget, sans-serif",
+                    "System UI": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    "Atkinson Hyperlegible": "'Atkinson Hyperlegible', sans-serif",
+                    "Tektur": "'Tektur', sans-serif",
+                    "Medieval Sharp": "'MedievalSharp', cursive",
+                    "MedievalSharp": "'MedievalSharp', cursive",
+                    "Press Start 2P": "'Press Start 2P', cursive",
+                    "Jacquard 12": "'Jacquard', monospace",
+                    "Jacquard": "'Jacquard', monospace"
+                };
+                
+                // Get the font stack from our map, or fallback to the font name
+                const fontStack = fontMap[themeData.font_family] || themeData.font_family;
+                
                 // Simple function to create elements with the correct font stack
                 function createFontElement(text, extraStyles = {}) {
                     const span = document.createElement('span');
                     span.textContent = text;
-                    
-                    // Use a direct mapping of font names to their CSS stacks
-                    const fontMap = {
-                        "Consolas": "Consolas, monaco, monospace",
-                        "EB Garamond": "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif",
-                        "Times New Roman": "'Times New Roman', Times, serif",
-                        "Georgia": "Georgia, serif",
-                        "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
-                        "Arial": "Arial, sans-serif",
-                        "Helvetica": "Helvetica, Arial, sans-serif",
-                        "Verdana": "Verdana, Geneva, sans-serif",
-                        "Tahoma": "Tahoma, Geneva, sans-serif",
-                        "Trebuchet MS": "'Trebuchet MS', sans-serif",
-                        "Calibri": "Calibri, sans-serif",
-                        "Courier New": "'Courier New', Courier, monospace",
-                        "Lucida Console": "'Lucida Console', Monaco, monospace",
-                        "Impact": "'Impact', Haettenschweiler, sans-serif",
-                        "Comic Sans MS": "'Comic Sans MS', cursive",
-                        "Arial Black": "'Arial Black', Gadget, sans-serif",
-                        "System UI": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-                        "Atkinson Hyperlegible": "'Atkinson Hyperlegible', sans-serif",
-                        "Tektur": "'Tektur', sans-serif",
-                        "Medieval Sharp": "'MedievalSharp', cursive",
-                        "MedievalSharp": "'MedievalSharp', cursive",
-                        "Press Start 2P": "'Press Start 2P', cursive",
-                        "Jacquard 12": "'Jacquard', monospace",
-                        "Jacquard": "'Jacquard', monospace"
-                    };
-                    
-                    // Get the font stack from our map, or fallback to the font name
-                    const fontStack = fontMap[themeData.font_family] || themeData.font_family;
                     
                     // Set the font family stack directly 
                     span.style.fontFamily = fontStack;
@@ -957,6 +998,17 @@
                     
                     return span;
                 }
+                
+                // Update the style to apply the font to all chat message elements
+                styleEl.textContent = `
+                    .chat-content, 
+                    .chat-message,
+                    #chatMessage1,
+                    #chatMessage2,
+                    .chat-message span {
+                        font-family: ${fontStack};
+                    }
+                `;
                 
                 // Apply to the font sample
                 const fontSample = document.getElementById('fontSample');
@@ -984,6 +1036,24 @@
                     msg2.appendChild(createFontElement("12:35 ", { color: '#808080', fontSize: '0.85em' }));
                     msg2.appendChild(createFontElement("AnotherUser: ", { color: themeData.username_color, fontWeight: 'bold' }));
                     msg2.appendChild(createFontElement("This is how your chat will look with the theme!", { color: themeData.text_color }));
+                }
+                
+                // As a backup, also apply directly to each chat message element
+                const chatMessages = document.querySelectorAll('.chat-message, #chatMessage1, #chatMessage2');
+                chatMessages.forEach(msg => {
+                    msg.style.fontFamily = fontStack;
+                    
+                    // Also apply to all spans within the message
+                    const spans = msg.querySelectorAll('span');
+                    spans.forEach(span => {
+                        span.style.fontFamily = fontStack;
+                    });
+                });
+                
+                // Apply to the chat content container as well to ensure inheritance
+                const chatContent = document.querySelector('.chat-content');
+                if (chatContent) {
+                    chatContent.style.fontFamily = fontStack;
                 }
                 
                 // Set up the opacity indicator if it doesn't exist yet
