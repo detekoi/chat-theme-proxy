@@ -583,7 +583,6 @@
                     <style id="dynamic-bg-style">
                         #chatPreviewContainer::before {
                             background-color: ${theme.background_color};
-                            opacity: 1;
                             border-radius: calc(${theme.border_radius_value || '16px'} - 2px);
                         }
                         ${theme.backgroundImage ? `
@@ -940,7 +939,6 @@
                     <style id="dynamic-bg-style">
                         #chatPreviewContainer::before {
                             background-color: ${themeData.background_color};
-                            opacity: 1;
                             border-radius: calc(${themeData.border_radius_value || '16px'} - 2px);
                         }
                         ${backgroundImage ? `
@@ -1165,6 +1163,51 @@
                     return;
                 }
                 
+                // Get the original background color to update its opacity
+                const originalBgColor = container.dataset.originalBgcolor || '';
+                
+                // Process the background color to maintain its RGB values but update opacity
+                let updatedBgColor = originalBgColor;
+                
+                // Parse the rgba or hex color to update opacity
+                if (originalBgColor.startsWith('rgba')) {
+                    // If already rgba, update the opacity value
+                    updatedBgColor = originalBgColor.replace(/rgba\((\d+,\s*\d+,\s*\d+,\s*)[\d.]+\)/, `rgba($1${value})`);
+                } else if (originalBgColor.startsWith('rgb')) {
+                    // If rgb, convert to rgba
+                    updatedBgColor = originalBgColor.replace(/rgb\((\d+,\s*\d+,\s*\d+)\)/, `rgba($1, ${value})`);
+                } else {
+                    // For hex and other formats, need to convert to rgb first
+                    // This is a simple approach that won't handle all edge cases
+                    const hexToRgb = (hex) => {
+                        // Remove # if present
+                        hex = hex.replace(/^#/, '');
+                        
+                        // Parse components
+                        let r, g, b;
+                        if (hex.length === 3) {
+                            r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
+                            g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
+                            b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
+                        } else {
+                            r = parseInt(hex.substring(0, 2), 16);
+                            g = parseInt(hex.substring(2, 4), 16);
+                            b = parseInt(hex.substring(4, 6), 16);
+                        }
+                        
+                        // Return rgba string
+                        return `rgba(${r}, ${g}, ${b}, ${value})`;
+                    };
+                    
+                    // Try to convert hex to rgba
+                    try {
+                        updatedBgColor = hexToRgb(originalBgColor);
+                    } catch (e) {
+                        // If conversion fails, fallback to original with opacity property
+                        console.warn('Could not parse color:', originalBgColor);
+                    }
+                }
+                
                 // Find our dynamic style in the document's styleSheets
                 let success = false;
                 
@@ -1180,7 +1223,8 @@
                             
                             // Update background color layer (::before)
                             if (rule.selectorText === '#chatPreviewContainer::before') {
-                                rule.style.opacity = value;
+                                rule.style.backgroundColor = updatedBgColor;
+                                rule.style.opacity = ''; // Remove opacity property
                                 success = true;
                                 break;
                             }
@@ -1264,7 +1308,44 @@
                 const imageOpacity = bgImageSlider.value;
                 
                 // Get the background color from the container's data attribute
-                const bgColor = container.dataset.originalBgcolor || '';
+                let bgColor = container.dataset.originalBgcolor || '';
+                
+                // Process the background color to maintain its RGB values but update opacity
+                if (bgColor.startsWith('rgba')) {
+                    // If already rgba, update the opacity value
+                    bgColor = bgColor.replace(/rgba\((\d+,\s*\d+,\s*\d+,\s*)[\d.]+\)/, `rgba($1${colorOpacity})`);
+                } else if (bgColor.startsWith('rgb')) {
+                    // If rgb, convert to rgba
+                    bgColor = bgColor.replace(/rgb\((\d+,\s*\d+,\s*\d+)\)/, `rgba($1, ${colorOpacity})`);
+                } else {
+                    // For hex and other formats, need to convert to rgb first
+                    const hexToRgb = (hex) => {
+                        // Remove # if present
+                        hex = hex.replace(/^#/, '');
+                        
+                        // Parse components
+                        let r, g, b;
+                        if (hex.length === 3) {
+                            r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
+                            g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
+                            b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
+                        } else {
+                            r = parseInt(hex.substring(0, 2), 16);
+                            g = parseInt(hex.substring(2, 4), 16);
+                            b = parseInt(hex.substring(4, 6), 16);
+                        }
+                        
+                        // Return rgba string
+                        return `rgba(${r}, ${g}, ${b}, ${colorOpacity})`;
+                    };
+                    
+                    // Try to convert hex to rgba
+                    try {
+                        bgColor = hexToRgb(bgColor);
+                    } catch (e) {
+                        console.warn('Could not parse color:', bgColor);
+                    }
+                }
                 
                 // Get background image from existing style if present
                 let bgImage = '';
@@ -1289,7 +1370,6 @@
                 newStyle.textContent = `
                     #chatPreviewContainer::before {
                         background-color: ${bgColor};
-                        opacity: ${colorOpacity};
                         border-radius: ${innerBorderRadius};
                     }
                     #chatPreviewContainer::after {
@@ -1335,11 +1415,35 @@
                 updateImageOpacity(e.target.value);
             });
             
+            // Set initial slider values based on any existing rgba opacity
+            const container = document.getElementById('chatPreviewContainer');
+            if (container) {
+                const bgColor = container.dataset.originalBgcolor || '';
+                
+                // Check if the color is already rgba with opacity
+                const rgbaMatch = bgColor.match(/rgba\([^)]+,\s*([\d.]+)\)/);
+                if (rgbaMatch && rgbaMatch[1]) {
+                    const existingOpacity = parseFloat(rgbaMatch[1]);
+                    // Only set if it's a valid opacity value between 0-1
+                    if (!isNaN(existingOpacity) && existingOpacity >= 0 && existingOpacity <= 1) {
+                        console.log('Found existing rgba opacity:', existingOpacity);
+                        bgColorSlider.value = existingOpacity;
+                        
+                        // Update the display value
+                        const opacityValueDisplay = document.getElementById('bgColorValue');
+                        if (opacityValueDisplay) {
+                            opacityValueDisplay.textContent = `${Math.round(existingOpacity * 100)}%`;
+                        }
+                    }
+                }
+            }
+            
             // Apply initial opacity settings
             updateColorOpacity(bgColorSlider.value);
             updateImageOpacity(bgImageSlider.value);
             
-            // Apply initial opacity from the slider values
+            // Apply initial opacity from the slider values again after a short delay
+            // to ensure all styles are properly applied
             setTimeout(() => {
                 // Make sure the sliders are setup correctly
                 const colorSlider = document.getElementById('bgColorOpacity');
