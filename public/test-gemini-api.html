@@ -1069,31 +1069,7 @@
                     indicator.textContent = 'Opacity: 100%';
                 }
                 
-                // Get the font map value for display in the UI
-                const fontMap = {
-                    "Consolas": "Consolas, monaco, monospace",
-                    "EB Garamond": "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif",
-                    "Times New Roman": "'Times New Roman', Times, serif",
-                    "Georgia": "Georgia, serif",
-                    "Palatino": "'Palatino Linotype', 'Book Antiqua', Palatino, serif",
-                    "Arial": "Arial, sans-serif", 
-                    "Helvetica": "Helvetica, Arial, sans-serif",
-                    "Verdana": "Verdana, Geneva, sans-serif",
-                    "Tahoma": "Tahoma, Geneva, sans-serif",
-                    "Trebuchet MS": "'Trebuchet MS', sans-serif",
-                    "Calibri": "Calibri, sans-serif",
-                    "Courier New": "'Courier New', Courier, monospace",
-                    "Lucida Console": "'Lucida Console', Monaco, monospace",
-                    "Impact": "'Impact', Haettenschweiler, sans-serif",
-                    "Comic Sans MS": "'Comic Sans MS', cursive",
-                    "Arial Black": "'Arial Black', Gadget, sans-serif",
-                    "System UI": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-                    "Atkinson Hyperlegible": "'Atkinson Hyperlegible', sans-serif",
-                    "Tektur": "'Tektur', sans-serif",
-                    "Medieval Sharp": "'MedievalSharp', cursive",
-                    "Press Start 2P": "'Press Start 2P', cursive",
-                    "Jacquard 12": "'Jacquard', monospace"
-                };
+                // We already have fontMap defined above, no need to redefine it
                 
                 // Set the displayed font stack in the UI
                 const fontStackElement = document.querySelector('#fontStack code');
