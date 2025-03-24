@@ -532,19 +532,32 @@
                         </div>
                     </div>
                     
-                    <div style="display: flex; margin-bottom: 20px; align-items: center;">
-                        <div style="width: 100px; font-weight: bold;">Background Opacity:</div>
-                        <div style="flex: 1;">
+                    <div class="controls" style="display: flex; margin-bottom: 20px; gap: 20px;">
+                        <div class="control-group" style="flex: 1;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <div style="width: 100px; font-weight: bold;">Background Color Opacity:</div>
+                                <span id="bgColorValue" class="opacity-value">100%</span>
+                            </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <input type="range" id="bgOpacitySlider" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
-                                <span id="opacityValue" class="opacity-value">100%</span>
+                                <input type="range" id="bgColorOpacity" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
                             </div>
                             <div style="display: flex; justify-content: space-between; max-width: 200px; font-size: 0.85em; margin-top: 3px;">
                                 <span>Transparent</span>
                                 <span>Opaque</span>
                             </div>
-                            <div class="opacity-help-text">
-                                Adjusts opacity for both background color and image
+                        </div>
+                        
+                        <div class="control-group" style="flex: 1;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <div style="width: 100px; font-weight: bold;">Background Image Opacity:</div>
+                                <span id="bgImageValue" class="opacity-value">100%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="bgImageOpacity" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
+                            </div>
+                            <div style="display: flex; justify-content: space-between; max-width: 200px; font-size: 0.85em; margin-top: 3px;">
+                                <span>Transparent</span>
+                                <span>Opaque</span>
                             </div>
                         </div>
                     </div>
@@ -581,7 +594,12 @@
                             opacity: 1;
                             border-radius: calc(${theme.border_radius_value || '16px'} - 2px);
                         }
-                        ` : ''}
+                        ` : `
+                        #chatPreviewContainer::after {
+                            background-image: none;
+                            opacity: 0;
+                        }
+                        `}
                     </style>
                     
                     ${theme.backgroundImage ? `
@@ -871,19 +889,32 @@
                         </div>
                     </div>
                     
-                    <div style="display: flex; margin-bottom: 20px; align-items: center;">
-                        <div style="width: 100px; font-weight: bold;">Background Opacity:</div>
-                        <div style="flex: 1;">
+                    <div class="controls" style="display: flex; margin-bottom: 20px; gap: 20px;">
+                        <div class="control-group" style="flex: 1;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <div style="width: 100px; font-weight: bold;">Background Color Opacity:</div>
+                                <span id="bgColorValue" class="opacity-value">100%</span>
+                            </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <input type="range" id="bgOpacitySlider" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
-                                <span id="opacityValue" class="opacity-value">100%</span>
+                                <input type="range" id="bgColorOpacity" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
                             </div>
                             <div style="display: flex; justify-content: space-between; max-width: 200px; font-size: 0.85em; margin-top: 3px;">
                                 <span>Transparent</span>
                                 <span>Opaque</span>
                             </div>
-                            <div class="opacity-help-text">
-                                Adjusts opacity for both background color and image
+                        </div>
+                        
+                        <div class="control-group" style="flex: 1;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <div style="width: 100px; font-weight: bold;">Background Image Opacity:</div>
+                                <span id="bgImageValue" class="opacity-value">100%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="bgImageOpacity" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
+                            </div>
+                            <div style="display: flex; justify-content: space-between; max-width: 200px; font-size: 0.85em; margin-top: 3px;">
+                                <span>Transparent</span>
+                                <span>Opaque</span>
                             </div>
                         </div>
                     </div>
@@ -920,7 +951,12 @@
                             opacity: 1;
                             border-radius: calc(${themeData.border_radius_value || '16px'} - 2px);
                         }
-                        ` : ''}
+                        ` : `
+                        #chatPreviewContainer::after {
+                            background-image: none;
+                            opacity: 0;
+                        }
+                        `}
                     </style>
                     
                     ${backgroundImage ? `
@@ -1112,22 +1148,23 @@
             }
         });
         
-        // Function to set up the background opacity slider
-        function setupBackgroundOpacitySlider() {
-            const slider = document.getElementById('bgOpacitySlider');
-            if (!slider) {
-                console.error('Slider element not found!');
+        // Function to set up separate background opacity sliders
+        function setupBackgroundOpacitySliders() {
+            const bgColorSlider = document.getElementById('bgColorOpacity');
+            const bgImageSlider = document.getElementById('bgImageOpacity');
+            
+            if (!bgColorSlider || !bgImageSlider) {
+                console.error('Opacity sliders not found!');
                 return;
             }
             
-            // Function to update background opacity based on slider value
-            const updateOpacity = (value) => {
+            // Function to update background color opacity based on slider value
+            const updateColorOpacity = (value) => {
                 const container = document.getElementById('chatPreviewContainer');
                 if (!container) {
                     return;
                 }
                 
-                // Update both background color and image opacity the same way
                 // Find our dynamic style in the document's styleSheets
                 let success = false;
                 
@@ -1137,7 +1174,7 @@
                         const styleSheet = document.styleSheets[i];
                         const rules = styleSheet.cssRules || styleSheet.rules;
                         
-                        // Look for the rules targeting our pseudo-elements
+                        // Look for the rule targeting our color pseudo-element
                         for (let j = 0; j < rules.length; j++) {
                             const rule = rules[j];
                             
@@ -1145,12 +1182,7 @@
                             if (rule.selectorText === '#chatPreviewContainer::before') {
                                 rule.style.opacity = value;
                                 success = true;
-                            }
-                            
-                            // Update background image layer (::after) with the same opacity
-                            if (rule.selectorText === '#chatPreviewContainer::after') {
-                                rule.style.opacity = value;
-                                success = true;
+                                break;
                             }
                         }
                     } catch (e) {
@@ -1159,107 +1191,182 @@
                     }
                 }
                 
-                // If we couldn't find or update the styles, create a new style element
+                // If we couldn't find or update the styles, create/update the dynamic style element
                 if (!success) {
-                    // Get the background color from the container's data attribute
-                    const bgColor = container.dataset.originalBgcolor || '';
-                    
-                    // Get background image from existing style if present
-                    let bgImage = '';
-                    const styleEl = document.getElementById('dynamic-bg-style');
-                    if (styleEl && styleEl.textContent) {
-                        const bgMatch = styleEl.textContent.match(/background-image:[^;]+;/);
-                        if (bgMatch) {
-                            bgImage = bgMatch[0];
+                    updateDynamicStyle();
+                }
+                
+                // Update the color opacity value display
+                const opacityValueDisplay = document.getElementById('bgColorValue');
+                if (opacityValueDisplay) {
+                    opacityValueDisplay.textContent = `${Math.round(value * 100)}%`;
+                }
+                
+                updateOpacityIndicator();
+            };
+            
+            // Function to update background image opacity based on slider value
+            const updateImageOpacity = (value) => {
+                const container = document.getElementById('chatPreviewContainer');
+                if (!container) {
+                    return;
+                }
+                
+                // Find our dynamic style in the document's styleSheets
+                let success = false;
+                
+                // Loop through all style sheets
+                for (let i = 0; i < document.styleSheets.length; i++) {
+                    try {
+                        const styleSheet = document.styleSheets[i];
+                        const rules = styleSheet.cssRules || styleSheet.rules;
+                        
+                        // Look for the rule targeting our image pseudo-element
+                        for (let j = 0; j < rules.length; j++) {
+                            const rule = rules[j];
+                            
+                            // Update background image layer (::after)
+                            if (rule.selectorText === '#chatPreviewContainer::after') {
+                                rule.style.opacity = value;
+                                success = true;
+                                break;
+                            }
                         }
-                    }
-                    
-                    // Get the container's border radius and calculate the inner radius
-                    const containerBorderRadius = window.getComputedStyle(container).borderRadius;
-                    // If we get a specific px value, subtract 2px, otherwise use a calc expression
-                    const innerBorderRadius = containerBorderRadius.includes('px') ? 
-                        `${parseInt(containerBorderRadius) - 2}px` : 
-                        `calc(${containerBorderRadius} - 2px)`;
-                    
-                    // Create a new style element
-                    const newStyle = document.createElement('style');
-                    newStyle.id = 'dynamic-bg-style';
-                    newStyle.textContent = `
-                        #chatPreviewContainer::before {
-                            background-color: ${bgColor};
-                            opacity: ${value};
-                            border-radius: ${innerBorderRadius};
-                        }
-                        #chatPreviewContainer::after {
-                            ${bgImage}
-                            background-size: 200px;
-                            background-repeat: repeat;
-                            opacity: ${value};
-                            border-radius: ${innerBorderRadius};
-                        }
-                    `;
-                    
-                    // Replace existing style or add new one
-                    if (styleEl) {
-                        styleEl.replaceWith(newStyle);
-                    } else {
-                        document.head.appendChild(newStyle);
+                    } catch (e) {
+                        // Security error can happen when accessing cross-origin stylesheets
+                        continue;
                     }
                 }
+                
+                // If we couldn't find or update the styles, create/update the dynamic style element
+                if (!success) {
+                    updateDynamicStyle();
+                }
+                
+                // Update the image opacity value display
+                const opacityValueDisplay = document.getElementById('bgImageValue');
+                if (opacityValueDisplay) {
+                    opacityValueDisplay.textContent = `${Math.round(value * 100)}%`;
+                }
+                
+                updateOpacityIndicator();
+            };
+            
+            // Function to create/update dynamic style element with current opacity values
+            const updateDynamicStyle = () => {
+                const container = document.getElementById('chatPreviewContainer');
+                if (!container) {
+                    return;
+                }
+                
+                // Get current slider values
+                const colorOpacity = bgColorSlider.value;
+                const imageOpacity = bgImageSlider.value;
+                
+                // Get the background color from the container's data attribute
+                const bgColor = container.dataset.originalBgcolor || '';
+                
+                // Get background image from existing style if present
+                let bgImage = '';
+                const styleEl = document.getElementById('dynamic-bg-style');
+                if (styleEl && styleEl.textContent) {
+                    const bgMatch = styleEl.textContent.match(/background-image:[^;]+;/);
+                    if (bgMatch) {
+                        bgImage = bgMatch[0];
+                    }
+                }
+                
+                // Get the container's border radius and calculate the inner radius
+                const containerBorderRadius = window.getComputedStyle(container).borderRadius;
+                // If we get a specific px value, subtract 2px, otherwise use a calc expression
+                const innerBorderRadius = containerBorderRadius.includes('px') ? 
+                    `${parseInt(containerBorderRadius) - 2}px` : 
+                    `calc(${containerBorderRadius} - 2px)`;
+                
+                // Create a new style element
+                const newStyle = document.createElement('style');
+                newStyle.id = 'dynamic-bg-style';
+                newStyle.textContent = `
+                    #chatPreviewContainer::before {
+                        background-color: ${bgColor};
+                        opacity: ${colorOpacity};
+                        border-radius: ${innerBorderRadius};
+                    }
+                    #chatPreviewContainer::after {
+                        ${bgImage}
+                        background-size: 200px;
+                        background-repeat: repeat;
+                        opacity: ${imageOpacity};
+                        border-radius: ${innerBorderRadius};
+                    }
+                `;
+                
+                // Replace existing style or add new one
+                if (styleEl) {
+                    styleEl.replaceWith(newStyle);
+                } else {
+                    document.head.appendChild(newStyle);
+                }
+            };
+            
+            // Update opacity indicator in the chat preview
+            const updateOpacityIndicator = () => {
+                const container = document.getElementById('chatPreviewContainer');
+                if (!container) {
+                    return;
+                }
+                
+                const colorOpacity = Math.round(bgColorSlider.value * 100);
+                const imageOpacity = Math.round(bgImageSlider.value * 100);
                 
                 // Update the opacity indicator
                 const indicator = container.querySelector('.opacity-indicator');
                 if (indicator) {
-                    indicator.textContent = `Opacity: ${Math.round(value * 100)}%`;
+                    indicator.textContent = `Color: ${colorOpacity}% / Image: ${imageOpacity}%`;
                 }
-            }
+            };
             
-            // Add input event listener to update in real-time as the slider is moved
-            slider.addEventListener('input', (e) => {
-                updateOpacity(e.target.value);
-                
-                // Update the opacity value display
-                const opacityValueDisplay = document.getElementById('opacityValue');
-                if (opacityValueDisplay) {
-                    opacityValueDisplay.textContent = `${Math.round(e.target.value * 100)}%`;
-                }
+            // Add input event listeners to update in real-time as sliders are moved
+            bgColorSlider.addEventListener('input', (e) => {
+                updateColorOpacity(e.target.value);
             });
             
-            // Apply initial opacity setting
-            updateOpacity(slider.value);
+            bgImageSlider.addEventListener('input', (e) => {
+                updateImageOpacity(e.target.value);
+            });
             
-            // Apply initial opacity from the slider value 
+            // Apply initial opacity settings
+            updateColorOpacity(bgColorSlider.value);
+            updateImageOpacity(bgImageSlider.value);
+            
+            // Apply initial opacity from the slider values
             setTimeout(() => {
-                // Make sure the slider is setup correctly
-                const slider = document.getElementById('bgOpacitySlider');
-                if (slider) {
-                    updateOpacity(slider.value);
-                    
-                    // Initialize the opacity value display
-                    const opacityValueDisplay = document.getElementById('opacityValue');
-                    if (opacityValueDisplay) {
-                        opacityValueDisplay.textContent = `${Math.round(slider.value * 100)}%`;
-                    }
+                // Make sure the sliders are setup correctly
+                const colorSlider = document.getElementById('bgColorOpacity');
+                const imageSlider = document.getElementById('bgImageOpacity');
+                if (colorSlider && imageSlider) {
+                    updateColorOpacity(colorSlider.value);
+                    updateImageOpacity(imageSlider.value);
                 }
             }, 300);
         }
         
-        // Set up the opacity slider when the DOM is loaded
+        // Set up the opacity sliders when the DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
-            setupBackgroundOpacitySlider();
+            setupBackgroundOpacitySliders();
         });
         
         // Also hook into the window load event to be extra sure
         window.addEventListener('load', () => {
-            setupBackgroundOpacitySlider();
+            setupBackgroundOpacitySliders();
         });
         
-        // Set up the opacity slider when a new theme is generated or selected
+        // Set up the opacity sliders when a new theme is generated or selected
         const originalAddThemeToCarousel = addThemeToCarousel;
         addThemeToCarousel = function(...args) {
             const result = originalAddThemeToCarousel.apply(this, args);
             setTimeout(() => {
-                setupBackgroundOpacitySlider();
+                setupBackgroundOpacitySliders();
             }, 100); // Short delay to ensure DOM is updated
             return result;
         };
@@ -1269,14 +1376,14 @@
         applyTheme = function(...args) {
             const result = originalApplyTheme.apply(this, args);
             setTimeout(() => {
-                setupBackgroundOpacitySlider();
+                setupBackgroundOpacitySliders();
             }, 100); // Short delay to ensure DOM is updated
             return result;
         };
         
         // Try an immediate setup if elements might already exist
         setTimeout(() => {
-            setupBackgroundOpacitySlider();
+            setupBackgroundOpacitySliders();
         }, 300);
     </script>
 </body>
