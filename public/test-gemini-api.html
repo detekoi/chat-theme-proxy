@@ -223,29 +223,119 @@
             -webkit-appearance: none;
             appearance: none;
             height: 8px;
-            background: #ddd;
+            background: linear-gradient(to right, rgba(145, 71, 255, 0.2), rgba(145, 71, 255, 1));
             border-radius: 4px;
             outline: none;
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]:hover {
+            height: 10px;
         }
         
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background: #9147ff;
             cursor: pointer;
-            border: none;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            background: #772ce8;
         }
         
         input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background: #9147ff;
             cursor: pointer;
-            border: none;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            background: #772ce8;
+        }
+        
+        /* Opacity value display */
+        .opacity-value {
+            font-size: 0.85em;
+            color: #555;
+            margin-top: 3px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* Chat container styles for layered background */
+        .chat-message-container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Background color layer with separate opacity */
+        .chat-message-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 1; /* Default opacity, will be controlled by JS */
+            /* Border radius will be set via JS based on parent container */
+            z-index: -2;
+        }
+        
+        /* Background image layer with separate opacity */
+        .chat-message-container::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: 200px;
+            background-repeat: repeat;
+            opacity: 1; /* Default opacity, will be controlled by JS */
+            /* Border radius will be set via JS based on parent container */
+            z-index: -1;
+        }
+        
+        /* Content remains fully opaque */
+        .chat-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Opacity indicator */
+        .opacity-indicator {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        /* Help text for opacity slider */
+        .opacity-help-text {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -261,6 +351,13 @@
     <div class="form-group">
         <label for="prompt">Theme Prompt:</label>
         <input type="text" id="prompt" placeholder="e.g., Minecraft, Cyberpunk, Cozy Vibes">
+    </div>
+    
+    <div class="form-group" style="margin-top: 10px;">
+        <label class="checkbox-container" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="generateImageCheckbox" checked>
+            <span>Generate image (unchecked = color only)</span>
+        </label>
     </div>
     
     <div>
@@ -438,26 +535,54 @@
                     <div style="display: flex; margin-bottom: 20px; align-items: center;">
                         <div style="width: 100px; font-weight: bold;">Background Opacity:</div>
                         <div style="flex: 1;">
-                            <input type="range" id="bgOpacitySlider" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="bgOpacitySlider" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
+                                <span id="opacityValue" class="opacity-value">100%</span>
+                            </div>
                             <div style="display: flex; justify-content: space-between; max-width: 200px; font-size: 0.85em; margin-top: 3px;">
                                 <span>Transparent</span>
                                 <span>Opaque</span>
                             </div>
+                            <div class="opacity-help-text">
+                                Adjusts opacity for both background color and image
+                            </div>
                         </div>
                     </div>
 
-                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${theme.border_radius_value || '8px'}; background-color: ${theme.background_color}; border: 2px solid ${theme.border_color}; box-shadow: ${theme.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}; ${theme.backgroundImage ? `background-image: url('${theme.backgroundImage}'); background-size: 200px; background-repeat: repeat;` : ''}">
-                        <div style="margin-bottom: 10px;">
-                            <span style="color: #808080; font-size: 0.85em;">12:34</span>
-                            <span style="color: ${theme.username_color}; font-weight: bold;">Username:</span>
-                            <span style="color: ${theme.text_color};">This is a sample chat message</span>
-                        </div>
-                        <div>
-                            <span style="color: #808080; font-size: 0.85em;">12:35</span>
-                            <span style="color: ${theme.username_color}; font-weight: bold;">AnotherUser:</span>
-                            <span style="color: ${theme.text_color};">This is how your chat will look with the theme!</span>
+                    <div id="chatPreviewContainer" data-original-bgcolor="${theme.background_color}" class="chat-message-container" style="margin-top: 30px; padding: 15px; border-radius: ${theme.border_radius_value || '16px'}; border: 2px solid ${theme.border_color}; box-shadow: ${theme.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'};">
+                        <!-- Content layer (fully opaque) -->
+                        <div class="chat-content">
+                            <div id="chatMessage1" class="chat-message" style="margin-bottom: 10px;">
+                                <span style="color: #808080; font-size: 0.85em;">12:34</span>
+                                <span style="color: ${theme.username_color}; font-weight: bold;">Username:</span>
+                                <span style="color: ${theme.text_color};">This is a sample chat message</span>
+                            </div>
+                            <div id="chatMessage2" class="chat-message">
+                                <span style="color: #808080; font-size: 0.85em;">12:35</span>
+                                <span style="color: ${theme.username_color}; font-weight: bold;">AnotherUser:</span>
+                                <span style="color: ${theme.text_color};">This is how your chat will look with the theme!</span>
+                            </div>
+                            
+                            <div id="opacity-indicator" class="opacity-indicator">Opacity: 100%</div>
                         </div>
                     </div>
+                    
+                    <style id="dynamic-bg-style">
+                        #chatPreviewContainer::before {
+                            background-color: ${theme.background_color};
+                            opacity: 1;
+                            border-radius: calc(${theme.border_radius_value || '16px'} - 2px);
+                        }
+                        ${theme.backgroundImage ? `
+                        #chatPreviewContainer::after {
+                            background-image: url('${theme.backgroundImage}');
+                            background-size: 200px;
+                            background-repeat: repeat;
+                            opacity: 1;
+                            border-radius: calc(${theme.border_radius_value || '16px'} - 2px);
+                        }
+                        ` : ''}
+                    </style>
                     
                     ${theme.backgroundImage ? `
                     <div style="margin-top: 20px;">
@@ -544,12 +669,18 @@
                 do {
                     // If we're retrying, show a message
                     if (retrying) {
-                        outputElem.textContent = `Retrying (attempt ${attempt})... Waiting for background image generation.`;
+                        const shouldGenerateImage = document.getElementById('generateImageCheckbox').checked;
+                        const retryReason = shouldGenerateImage ? 'background image generation' : 'theme generation';
+                        
+                        outputElem.textContent = `Retrying (attempt ${attempt})... Waiting for ${retryReason}.`;
                         document.getElementById('retryInfo').style.display = 'block';
-                        document.getElementById('retryInfo').textContent = `Retry attempt ${attempt}: Trying to get a background image. This may take a few seconds...`;
+                        document.getElementById('retryInfo').textContent = `Retry attempt ${attempt}: ${shouldGenerateImage ? 'Trying to get a background image' : 'Trying to generate a better theme'}. This may take a few seconds...`;
                     } else {
                         document.getElementById('retryInfo').style.display = 'none';
                     }
+                    
+                    // Get the checkbox state
+                    const shouldGenerateImage = document.getElementById('generateImageCheckbox').checked;
                     
                     // Call the local proxy service
                     const response = await fetch('/api/generate-theme', {
@@ -559,7 +690,8 @@
                         },
                         body: JSON.stringify({ 
                             prompt,
-                            attempt
+                            attempt,
+                            themeType: shouldGenerateImage ? 'image' : 'color'
                         })
                     });
                     
@@ -591,10 +723,16 @@
                     if (data.maxAttemptsReached || data.noImageAvailable) {
                         console.log('Maximum retry attempts reached. Proceeding with theme data only (no background image).');
                         document.getElementById('retryInfo').style.display = 'block';
-                        document.getElementById('retryInfo').textContent = 'Background image generation was unsuccessful after multiple attempts. Proceeding with theme data only.';
+                        
+                        const shouldGenerateImage = document.getElementById('generateImageCheckbox').checked;
+                        if (shouldGenerateImage) {
+                            document.getElementById('retryInfo').textContent = 'Background image generation was unsuccessful after multiple attempts. Proceeding with theme data only.';
+                        } else {
+                            document.getElementById('retryInfo').textContent = 'Generated color-only theme as requested (no background image).';
+                        }
                         
                         // If we have a last successful theme and the current response doesn't have a theme, use that
-                        if (lastSuccessfulTheme && (!data.themeData || !data.backgroundImage)) {
+                        if (lastSuccessfulTheme && (!data.themeData || !data.backgroundImage) && shouldGenerateImage) {
                             console.log('Using last successful theme with background image');
                             // Make sure this successful theme is in the carousel
                             addThemeToCarousel(lastSuccessfulTheme.themeData, lastSuccessfulTheme.backgroundImage);
@@ -695,26 +833,54 @@
                     <div style="display: flex; margin-bottom: 20px; align-items: center;">
                         <div style="width: 100px; font-weight: bold;">Background Opacity:</div>
                         <div style="flex: 1;">
-                            <input type="range" id="bgOpacitySlider" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="bgOpacitySlider" min="0" max="1" step="0.05" value="1" style="width: 100%; max-width: 200px;">
+                                <span id="opacityValue" class="opacity-value">100%</span>
+                            </div>
                             <div style="display: flex; justify-content: space-between; max-width: 200px; font-size: 0.85em; margin-top: 3px;">
                                 <span>Transparent</span>
                                 <span>Opaque</span>
                             </div>
+                            <div class="opacity-help-text">
+                                Adjusts opacity for both background color and image
+                            </div>
                         </div>
                     </div>
 
-                    <div id="chatPreviewContainer" style="margin-top: 30px; padding: 15px; border-radius: ${themeData.border_radius_value || '8px'}; background-color: ${themeData.background_color}; border: 2px solid ${themeData.border_color}; box-shadow: ${themeData.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'}; ${backgroundImage ? `background-image: url(data:${backgroundImage.mimeType};base64,${backgroundImage.data}); background-size: 200px; background-repeat: repeat;` : ''}">
-                        <div id="chatMessage1" style="margin-bottom: 10px;">
-                            <span style="color: #808080; font-size: 0.85em;">12:34</span>
-                            <span style="color: ${themeData.username_color}; font-weight: bold;">Username:</span>
-                            <span style="color: ${themeData.text_color};">This is a sample chat message</span>
-                        </div>
-                        <div id="chatMessage2">
-                            <span style="color: #808080; font-size: 0.85em;">12:35</span>
-                            <span style="color: ${themeData.username_color}; font-weight: bold;">AnotherUser:</span>
-                            <span style="color: ${themeData.text_color};">This is how your chat will look with the theme!</span>
+                    <div id="chatPreviewContainer" data-original-bgcolor="${themeData.background_color}" class="chat-message-container" style="margin-top: 30px; padding: 15px; border-radius: ${themeData.border_radius_value || '16px'}; border: 2px solid ${themeData.border_color}; box-shadow: ${themeData.box_shadow_value || 'rgba(99, 99, 99, 0.2) 0px 2px 8px 0px'};">
+                        <!-- Content layer (fully opaque) -->
+                        <div class="chat-content">
+                            <div id="chatMessage1" style="margin-bottom: 10px;">
+                                <span style="color: #808080; font-size: 0.85em;">12:34</span>
+                                <span style="color: ${themeData.username_color}; font-weight: bold;">Username:</span>
+                                <span style="color: ${themeData.text_color};">This is a sample chat message</span>
+                            </div>
+                            <div id="chatMessage2">
+                                <span style="color: #808080; font-size: 0.85em;">12:35</span>
+                                <span style="color: ${themeData.username_color}; font-weight: bold;">AnotherUser:</span>
+                                <span style="color: ${themeData.text_color};">This is how your chat will look with the theme!</span>
+                            </div>
+                            
+                            <div id="opacity-indicator" class="opacity-indicator">Opacity: 100%</div>
                         </div>
                     </div>
+                    
+                    <style id="dynamic-bg-style">
+                        #chatPreviewContainer::before {
+                            background-color: ${themeData.background_color};
+                            opacity: 1;
+                            border-radius: calc(${themeData.border_radius_value || '16px'} - 2px);
+                        }
+                        ${backgroundImage ? `
+                        #chatPreviewContainer::after {
+                            background-image: url('data:${backgroundImage.mimeType};base64,${backgroundImage.data}');
+                            background-size: 200px;
+                            background-repeat: repeat;
+                            opacity: 1;
+                            border-radius: calc(${themeData.border_radius_value || '16px'} - 2px);
+                        }
+                        ` : ''}
+                    </style>
                     
                     ${backgroundImage ? `
                     <div style="margin-top: 20px;">
@@ -802,7 +968,7 @@
                     ));
                 }
                 
-                // Apply to the first chat message
+                // Apply to the first chat message - now inside .chat-content
                 const msg1 = document.getElementById('chatMessage1');
                 if (msg1) {
                     msg1.innerHTML = '';
@@ -811,13 +977,26 @@
                     msg1.appendChild(createFontElement("This is a sample chat message", { color: themeData.text_color }));
                 }
                 
-                // Apply to the second chat message
+                // Apply to the second chat message - now inside .chat-content
                 const msg2 = document.getElementById('chatMessage2');
                 if (msg2) {
                     msg2.innerHTML = '';
                     msg2.appendChild(createFontElement("12:35 ", { color: '#808080', fontSize: '0.85em' }));
                     msg2.appendChild(createFontElement("AnotherUser: ", { color: themeData.username_color, fontWeight: 'bold' }));
                     msg2.appendChild(createFontElement("This is how your chat will look with the theme!", { color: themeData.text_color }));
+                }
+                
+                // Set up the opacity indicator if it doesn't exist yet
+                const container = document.getElementById('chatPreviewContainer');
+                const indicatorId = 'opacity-indicator';
+                let indicator = container.querySelector(`.${indicatorId}`);
+                
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = indicatorId;
+                    indicator.className = 'opacity-indicator';
+                    container.appendChild(indicator);
+                    indicator.textContent = 'Opacity: 100%';
                 }
                 
                 // Get the font map value for display in the UI
@@ -890,40 +1069,133 @@
         // Function to set up the background opacity slider
         function setupBackgroundOpacitySlider() {
             const slider = document.getElementById('bgOpacitySlider');
-            if (!slider) return;
+            if (!slider) {
+                console.error('Slider element not found!');
+                return;
+            }
             
             // Function to update background opacity based on slider value
             const updateOpacity = (value) => {
                 const container = document.getElementById('chatPreviewContainer');
-                if (!container) return;
+                if (!container) {
+                    return;
+                }
                 
-                // Parse the background color
-                const style = window.getComputedStyle(container);
-                let bgColor = style.backgroundColor;
+                // Update both background color and image opacity the same way
+                // Find our dynamic style in the document's styleSheets
+                let success = false;
                 
-                // Handle different formats: rgb(r,g,b) or rgba(r,g,b,a)
-                if (bgColor.startsWith('rgb')) {
-                    // Convert rgb to rgba or update existing alpha value
-                    if (bgColor.startsWith('rgba')) {
-                        // Already has alpha, just update it
-                        bgColor = bgColor.replace(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d\.]+\)/, `rgba($1, $2, $3, ${value})`);
-                    } else {
-                        // Convert rgb to rgba
-                        bgColor = bgColor.replace(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/, `rgba($1, $2, $3, ${value})`);
+                // Loop through all style sheets
+                for (let i = 0; i < document.styleSheets.length; i++) {
+                    try {
+                        const styleSheet = document.styleSheets[i];
+                        const rules = styleSheet.cssRules || styleSheet.rules;
+                        
+                        // Look for the rules targeting our pseudo-elements
+                        for (let j = 0; j < rules.length; j++) {
+                            const rule = rules[j];
+                            
+                            // Update background color layer (::before)
+                            if (rule.selectorText === '#chatPreviewContainer::before') {
+                                rule.style.opacity = value;
+                                success = true;
+                            }
+                            
+                            // Update background image layer (::after) with the same opacity
+                            if (rule.selectorText === '#chatPreviewContainer::after') {
+                                rule.style.opacity = value;
+                                success = true;
+                            }
+                        }
+                    } catch (e) {
+                        // Security error can happen when accessing cross-origin stylesheets
+                        continue;
+                    }
+                }
+                
+                // If we couldn't find or update the styles, create a new style element
+                if (!success) {
+                    // Get the background color from the container's data attribute
+                    const bgColor = container.dataset.originalBgcolor || '';
+                    
+                    // Get background image from existing style if present
+                    let bgImage = '';
+                    const styleEl = document.getElementById('dynamic-bg-style');
+                    if (styleEl && styleEl.textContent) {
+                        const bgMatch = styleEl.textContent.match(/background-image:[^;]+;/);
+                        if (bgMatch) {
+                            bgImage = bgMatch[0];
+                        }
                     }
                     
-                    // Apply the new background color
-                    container.style.backgroundColor = bgColor;
+                    // Get the container's border radius and calculate the inner radius
+                    const containerBorderRadius = window.getComputedStyle(container).borderRadius;
+                    // If we get a specific px value, subtract 2px, otherwise use a calc expression
+                    const innerBorderRadius = containerBorderRadius.includes('px') ? 
+                        `${parseInt(containerBorderRadius) - 2}px` : 
+                        `calc(${containerBorderRadius} - 2px)`;
+                    
+                    // Create a new style element
+                    const newStyle = document.createElement('style');
+                    newStyle.id = 'dynamic-bg-style';
+                    newStyle.textContent = `
+                        #chatPreviewContainer::before {
+                            background-color: ${bgColor};
+                            opacity: ${value};
+                            border-radius: ${innerBorderRadius};
+                        }
+                        #chatPreviewContainer::after {
+                            ${bgImage}
+                            background-size: 200px;
+                            background-repeat: repeat;
+                            opacity: ${value};
+                            border-radius: ${innerBorderRadius};
+                        }
+                    `;
+                    
+                    // Replace existing style or add new one
+                    if (styleEl) {
+                        styleEl.replaceWith(newStyle);
+                    } else {
+                        document.head.appendChild(newStyle);
+                    }
                 }
-            };
+                
+                // Update the opacity indicator
+                const indicator = container.querySelector('.opacity-indicator');
+                if (indicator) {
+                    indicator.textContent = `Opacity: ${Math.round(value * 100)}%`;
+                }
+            }
             
             // Add input event listener to update in real-time as the slider is moved
             slider.addEventListener('input', (e) => {
                 updateOpacity(e.target.value);
+                
+                // Update the opacity value display
+                const opacityValueDisplay = document.getElementById('opacityValue');
+                if (opacityValueDisplay) {
+                    opacityValueDisplay.textContent = `${Math.round(e.target.value * 100)}%`;
+                }
             });
             
             // Apply initial opacity setting
             updateOpacity(slider.value);
+            
+            // Apply initial opacity from the slider value 
+            setTimeout(() => {
+                // Make sure the slider is setup correctly
+                const slider = document.getElementById('bgOpacitySlider');
+                if (slider) {
+                    updateOpacity(slider.value);
+                    
+                    // Initialize the opacity value display
+                    const opacityValueDisplay = document.getElementById('opacityValue');
+                    if (opacityValueDisplay) {
+                        opacityValueDisplay.textContent = `${Math.round(slider.value * 100)}%`;
+                    }
+                }
+            }, 300);
         }
         
         // Set up the opacity slider when the DOM is loaded
@@ -931,11 +1203,18 @@
             setupBackgroundOpacitySlider();
         });
         
+        // Also hook into the window load event to be extra sure
+        window.addEventListener('load', () => {
+            setupBackgroundOpacitySlider();
+        });
+        
         // Set up the opacity slider when a new theme is generated or selected
         const originalAddThemeToCarousel = addThemeToCarousel;
         addThemeToCarousel = function(...args) {
             const result = originalAddThemeToCarousel.apply(this, args);
-            setTimeout(setupBackgroundOpacitySlider, 100); // Short delay to ensure DOM is updated
+            setTimeout(() => {
+                setupBackgroundOpacitySlider();
+            }, 100); // Short delay to ensure DOM is updated
             return result;
         };
         
@@ -943,9 +1222,16 @@
         const originalApplyTheme = applyTheme;
         applyTheme = function(...args) {
             const result = originalApplyTheme.apply(this, args);
-            setTimeout(setupBackgroundOpacitySlider, 100); // Short delay to ensure DOM is updated
+            setTimeout(() => {
+                setupBackgroundOpacitySlider();
+            }, 100); // Short delay to ensure DOM is updated
             return result;
         };
+        
+        // Try an immediate setup if elements might already exist
+        setTimeout(() => {
+            setupBackgroundOpacitySlider();
+        }, 300);
     </script>
 </body>
 </html>

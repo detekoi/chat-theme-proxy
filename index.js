@@ -90,13 +90,13 @@ const generateThemeStorageKey = (themeId) => `generated-theme-image-${themeId}`;
 // Define theme generation endpoint
 app.post('/api/generate-theme', async (req, res) => {
   try {
-    const { prompt, attempt = 0, forceJson = false, previousThemeData } = req.body;
+    const { prompt, attempt = 0, forceJson = false, previousThemeData, themeType = 'image' } = req.body;
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     
-    console.log(`Processing theme generation request for prompt: "${prompt}", attempt: ${attempt}, forceJson: ${forceJson}`);
+    console.log(`Processing theme generation request for prompt: "${prompt}", attempt: ${attempt}, forceJson: ${forceJson}, themeType: ${themeType}`);
     
     // Log additional details for debugging
     if (VERBOSE_LOGGING) {
@@ -104,6 +104,7 @@ app.post('/api/generate-theme', async (req, res) => {
         prompt,
         attempt,
         forceJson,
+        themeType,
         hasPreviousTheme: !!previousThemeData,
         previousThemeName: previousThemeData ? previousThemeData.theme_name : null
       })}`);
@@ -135,13 +136,17 @@ app.post('/api/generate-theme', async (req, res) => {
         temperature = 1.1; // Experimental: temperature above 1
         topK = 32;
         topP = 0.92;
-        prompt_prefix = 'Design a Twitch theme with both a small background pattern image AND a JSON object. ';
+        prompt_prefix = themeType === 'image' ? 
+          'Design a Twitch theme with both a small background pattern image AND a JSON object. ' : 
+          'Design a Twitch theme with a solid background color (no image) AND a JSON object. ';
       } else if (attempt === 2) {
         // Second retry - completely different approach with lower temperature
         temperature = 0.4;
         topK = 40;
         topP = 0.85;
-        prompt_prefix = 'Create a small pattern image and also a JSON theme. For the theme use this exact format: ';
+        prompt_prefix = themeType === 'image' ? 
+          'Create a small pattern image and also a JSON theme. For the theme use this exact format: ' : 
+          'Create a JSON theme with a solid color background (no image). For the theme use this exact format: ';
       } else {
         // For higher attempts (3+), focus on getting valid JSON with different parameters
         temperature = 0.3;
@@ -174,6 +179,7 @@ For the JSON part:
   "description": "[brief description]"
 }
 
+${themeType === 'image' ? `
 First, create a small pattern image:
 - Simple pattern
 - Low contrast so text above it is readable
@@ -182,7 +188,10 @@ First, create a small pattern image:
 - Can tile seamlessly
 - No text or complex elements
 
-Then create the JSON object with the theme settings.
+Then create the JSON object with the theme settings.` : `
+Create a JSON object with the theme settings. 
+- Make sure to use a nice rgba color for the background_color.
+- DO NOT generate any image, only create a color-based theme.`}
 
 Quick font guide:
 - Modern/tech: Tektur, Consolas, System UI
@@ -213,7 +222,7 @@ Your response should include both an image and the JSON theme data.`
           topP: topP,
           seed: randomSeed, // Add random seed to prevent RECITATION errors
           maxOutputTokens: 2048, // Increased token limit to allow for image generation
-          responseModalities: ['text', 'image'] // Enable image generation
+          responseModalities: themeType === 'image' ? ['text', 'image'] : ['text'] // Only enable image generation when requested
         }
       }
     );
@@ -431,8 +440,8 @@ Your response should include both an image and the JSON theme data.`
         }
       }
       if (themeData) {
-        // Check if we have a background image - if not and this isn't a high-attempt retry, try again
-        if (!backgroundImage && attempt < 2) {
+        // Check if we have a background image when themeType is 'image' and this isn't a high-attempt retry
+        if (themeType === 'image' && !backgroundImage && attempt < 2) {
           console.log(`No background image was generated. Retrying with increased temperature... (attempt ${attempt + 1})`);
           
           // Add CSS values to theme data for consistent experience between attempts
@@ -454,9 +463,12 @@ Your response should include both an image and the JSON theme data.`
             themeData: themeData, // Include the theme data so client can use it while retrying
             includesThemeData: true // Extra flag to make it super obvious we have theme data
           });
-        } else if (!backgroundImage) {
+        } else if (themeType === 'image' && !backgroundImage) {
           // After all retries, proceed with the theme data without an image
           console.log('No background image was generated after multiple attempts. Proceeding with theme data only.');
+        } else if (themeType === 'color' && backgroundImage) {
+          console.log('Background image was generated even though themeType is color. Ignoring the image.');
+          backgroundImage = null; // Ignore the image for color-only themes
         }
         
         // Validate that the font exists in our list
