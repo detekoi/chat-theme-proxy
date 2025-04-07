@@ -192,7 +192,7 @@
             cursor: pointer;
             padding: 10px;
             font-weight: bold;
-            background-size: 200px;
+            background-size: 320px;
             background-repeat: repeat;
             color: #fff;
             text-shadow: 0 0 4px rgba(0,0,0,0.8);
@@ -303,7 +303,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-size: 200px;
+            background-size: 320px;
             background-repeat: repeat;
             opacity: 1; /* Default opacity, will be controlled by JS */
             /* Border radius will be set via JS based on parent container */
@@ -459,7 +459,7 @@
                 // Apply background image if available
                 if (theme.backgroundImage) {
                     card.style.backgroundImage = `url('${theme.backgroundImage}')`;
-                    card.style.backgroundSize = '200px';
+                    card.style.backgroundSize = '320px';
                     card.style.backgroundRepeat = 'repeat';
                     
                     // Add an icon to indicate it has an image
@@ -588,7 +588,7 @@
                         ${theme.backgroundImage ? `
                         #chatPreviewContainer::after {
                             background-image: url('${theme.backgroundImage}');
-                            background-size: 200px;
+                            background-size: 320px;
                             background-repeat: repeat;
                             opacity: 1;
                             border-radius: calc(${theme.border_radius_value || '16px'} - 2px);
@@ -944,7 +944,7 @@
                         ${backgroundImage ? `
                         #chatPreviewContainer::after {
                             background-image: url('data:${backgroundImage.mimeType};base64,${backgroundImage.data}');
-                            background-size: 200px;
+                            background-size: 320px;
                             background-repeat: repeat;
                             opacity: 1;
                             border-radius: calc(${themeData.border_radius_value || '16px'} - 2px);
@@ -962,7 +962,7 @@
                         <h4>Background Image:</h4>
                         <div style="display: flex; align-items: center; gap: 20px;">
                             <div style="flex: 0 0 auto;">
-                                <img src="data:${backgroundImage.mimeType};base64,${backgroundImage.data}" alt="Background Pattern" style="width: 200px; height: auto; border: 1px solid #ccc; border-radius: 4px;">
+                                <img src="data:${backgroundImage.mimeType};base64,${backgroundImage.data}" alt="Background Pattern" style="width: 320px; height: auto; border: 1px solid #ccc; border-radius: 4px;">
                             </div>
                             <div style="flex: 1;">
                                 <p>This background pattern has been automatically applied to your chat preview above.</p>
@@ -1374,7 +1374,7 @@
                     }
                     #chatPreviewContainer::after {
                         ${bgImage}
-                        background-size: 200px;
+                        background-size: 320px;
                         background-repeat: repeat;
                         opacity: ${imageOpacity};
                         border-radius: ${innerBorderRadius};

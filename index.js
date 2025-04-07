@@ -181,12 +181,13 @@ For the JSON part:
 
 ${themeType === 'image' ? `
 First, create a small pattern image:
-- Simple pattern
+- Simple pattern that tiles seamlessly (NO borders or edges)
 - Low contrast so text above it is readable
 - Simple design, minimal elements
 - 2-3 colors maximum
-- Can tile seamlessly
+- Must be borderless and edge-free for perfect tiling
 - No text or complex elements
+- Avoid any elements that could create visible seams when tiled
 
 Then create the JSON object with the theme settings.` : `
 Create a JSON object with the theme settings. 
@@ -202,15 +203,15 @@ Quick font guide:
 
 Border radius guide:
 - None (0px): Sharp or pixelated designs
-- Subtle (8px): Slightly soft corners
-- Rounded (16px): Modern interfaces
-- Pill (24px): Playful designs
+- Subtle (8px): Slightly rounded corners
+- Rounded (16px): Moderately rounded corners
+- Pill (24px): Playful or cute/soft designs
 
 Box shadow guide:
 - None: Flat designs
 - Soft: Subtle 360 spread
-- Simple 3D: Light layering
-- Intense 3D: Strong depth
+- Simple 3D: Light layering effect
+- Intense 3D: Strong depth effect
 - Sharp: Pixel-art style
 
 Your response should include both an image and the JSON theme data.`
