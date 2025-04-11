@@ -311,7 +311,7 @@ Your response should include both an image and the JSON theme data.`
           // Try again with different parameters, but include any previous theme data if we have it
           const responseData = {
             retry: true,
-            message: 'Received RECITATION error. Retrying with different parameters...',
+            message: 'Gemini is a bit fussy! Adjusting to get things working...',
             attempt: nextAttempt
           };
           
@@ -536,7 +536,7 @@ Your response should include both an image and the JSON theme data.`
       // If we can't extract valid JSON but we have an existing theme and less than max retries,
       // retry with different params
       if (attempt < 2) {
-        console.log(`No valid theme data in response. Retrying with increased temperature... (attempt ${attempt + 1})`);
+        console.log(`No valid theme data found. Unleashing creative force... (attempt ${attempt + 1})`);
         return res.status(202).json({
           retry: true,
           message: `No valid theme data received. Retrying (attempt ${attempt + 1}/2)...`,
