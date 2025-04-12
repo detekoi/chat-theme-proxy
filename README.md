@@ -59,6 +59,60 @@ Run the container:
 docker run -p 8091:8091 -e GEMINI_API_KEY=your_api_key_here chat-theme-proxy
 ```
 
+## Google Cloud Platform Deployment
+
+### Manual Deployment via Script
+
+1. Install and set up the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
+
+2. Set your Gemini API key as an environment variable:
+   ```bash
+   export GEMINI_API_KEY=your_api_key_here
+   ```
+
+3. Run the deployment script:
+   ```bash
+   ./deploy.sh
+   ```
+
+The script will:
+- Validate environment variables
+- Configure Docker authentication for GCP
+- Build and push the container image
+- Deploy to Cloud Run with appropriate settings
+
+### GitHub Actions Deployment
+
+For automated deployments via GitHub Actions, you'll need to set up the following secrets in your GitHub repository:
+
+1. Go to your repository Settings → Secrets and Variables → Actions
+2. Add the following secrets:
+   - `GCP_PROJECT_ID`: Your Google Cloud Project ID
+   - `GCP_SA_KEY`: Your Google Cloud Service Account key JSON
+   - `GEMINI_API_KEY`: Your Gemini API key
+
+The workflow will automatically:
+- Build and push the Docker image to Google Artifact Registry
+- Deploy to Cloud Run on every push to the main branch
+- Configure environment variables and secrets
+- Set up public access to the service
+
+### Required GCP Setup
+
+Before deploying, ensure you have:
+
+1. Created a Google Cloud Project
+2. Enabled the following APIs:
+   - Cloud Run API
+   - Cloud Build API
+   - Artifact Registry API
+3. Created a Service Account with the following roles:
+   - Cloud Run Admin
+   - Cloud Build Service Account
+   - Service Account User
+   - Artifact Registry Writer
+4. Generated and downloaded the Service Account key JSON
+
 ## Background Image Implementation
 
 ### Overview
@@ -75,12 +129,32 @@ The theme generator uses Gemini 2.0 Flash's image generation capabilities to cre
 
 #### CSS Implementation
 
-The following CSS properties have been added to both the chat window and popup messages:
+The background patterns are implemented by [Chat Overlay](https://github.com/detekoi/compact-chat-overlay) using pseudo-elements with the following CSS properties:
 
+For chat windows (using `::before` on `#chat-wrapper`):
 ```css
+content: '';
+position: absolute;
+inset: 0;
 background-image: var(--chat-bg-image, none);
 background-repeat: repeat;
-background-size: 200px;
+background-size: contain;
+z-index: 1; /* Above background color, below container */
+border-radius: inherit;
+pointer-events: none;
+```
+
+For popup messages (using `::after` on `.popup-message`):
+```css
+content: "";
+position: absolute;
+inset: 0;
+background-image: var(--popup-bg-image, none);
+background-repeat: repeat;
+background-size: 320px;
+z-index: -1;
+border-radius: inherit;
+pointer-events: none;
 ```
 
 #### Theme Data Structure
@@ -128,17 +202,14 @@ If the background image doesn't appear:
 
 #### Performance Issues
 
-If you experience performance issues with large data URLs:
+If you experience performance issues with background images:
 
-1. Consider adjusting the image size or quality in the Gemini API request
-2. Optimize the background-size property for your specific use case
-3. For very low-powered devices, you might want to add an option to disable background images
+1. You can disable background images entirely using the provided toggle option for low-powered devices
 
 ### Future Enhancements
 
 Potential future improvements to this feature:
 
-1. Add a toggle switch to enable/disable background images
-2. Implement image caching to reduce data usage
-3. Add more controls for adjusting the background pattern (size, opacity, etc.)
-4. Support for different tiling modes (e.g., mirror, rotate)
+1. Implement image caching to reduce data usage
+2. Add more controls for adjusting the background pattern (size, etc.)
+3. Support for different tiling modes (e.g., mirror, rotate)
