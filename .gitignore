@@ -1,25 +1,61 @@
-# Dependencies
-node_modules/
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
 
-# Environment variables
-.env
+# Windows system files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
 
-# Logs
-logs
+# Log files
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.aider*
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+.env
+
+# Security: credentials, keys, secrets
+*.pem
+*.key
+*.crt
+*.p12
+*.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.token
+*.secret
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+
+# Cleanliness: build output, dependencies, coverage, OS trash
+node_modules/
+dist/
+build/
+out/
+coverage/
+*.lcov
+.Trash-*
+
+# Optionally ignore lock files (uncomment if desired)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
