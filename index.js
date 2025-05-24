@@ -2,7 +2,7 @@
 require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
+const { GoogleGenAI, Modality } = require("@google/genai"); // Add this at the top
 const path = require('path');
 
 // Determine if we're in development mode
@@ -159,74 +159,34 @@ app.post('/api/generate-theme', async (req, res) => {
     }
     
     // Call Gemini API with server-side key and modified prompt for better results
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`,
+    const genAI = new GoogleGenAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash-preview-image-generation"
+    });
+
+    const sdkContents = [
       {
-        contents: [{
-          parts: [{
-            text: `${prompt_prefix}Create a visually appealing Twitch chat theme for: "${prompt}". 
-
-For the JSON part:
-{
-  "theme_name": "[catchy name]",
-  "background_color": "[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]",
-  "border_color": "[hex color - e.g., #ff6bcb]",
-  "text_color": "[hex color for chat text - e.g., #efeff1]",
-  "username_color": "[hex color for usernames - e.g., #9147ff]",
-  "font_family": "[One of: ${fontOptions}]",
-  "border_radius": "[One of: None, Subtle, Rounded, Pill]",
-  "box_shadow": "[One of: None, Soft, Simple 3D, Intense 3D, Sharp]",
-  "description": "[brief description]"
-}
-
-${themeType === 'image' ? `
-First, create a small pattern image:
-- Simple pattern that tiles seamlessly (NO borders or edges)
-- Low contrast so text above it is readable
-- Simple design, minimal elements
-- 2-3 colors maximum
-- Must be borderless and edge-free for perfect tiling
-- No text or complex elements
-- Avoid any elements that could create visible seams when tiled
-
-Then create the JSON object with the theme settings.` : `
-Create a JSON object with the theme settings. 
-- Make sure to use a nice rgba color for the background_color.
-- DO NOT generate any image, only create a color-based theme.`}
-
-Quick font guide:
-- Modern/tech: Tektur, Consolas, System UI
-- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond
-- Gaming/retro: Press Start 2P, Jacquard, Impact
-- Readable: Atkinson Hyperlegible, Verdana
-- Classic: EB Garamond, Georgia, Times New Roman
-
-Border radius guide:
-- None (0px): Sharp or pixelated designs
-- Subtle (8px): Slightly rounded corners
-- Rounded (16px): Moderately rounded corners
-- Pill (24px): Playful or cute/soft designs
-
-Box shadow guide:
-- None: Flat designs
-- Soft: Subtle 360 spread
-- Simple 3D: Light layering effect
-- Intense 3D: Strong depth effect
-- Sharp: Pixel-art style
-
-Your response should include both an image and the JSON theme data.`
-          }]
-        }],
-        generationConfig: {
-          temperature: temperature,
-          topK: topK,
-          topP: topP,
-          seed: randomSeed, // Add random seed to prevent RECITATION errors
-          maxOutputTokens: 2048, // Increased token limit to allow for image generation
-          responseModalities: themeType === 'image' ? ['text', 'image'] : ['text'] // Only enable image generation when requested
-        }
+        role: "user",
+        parts: [
+          { text: `${prompt_prefix}Create a visually appealing Twitch chat theme for: \"${prompt}\". \n\nFor the JSON part:\n{\n  \"theme_name\": \"[catchy name]\",\n  \"background_color\": \"[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]\",\n  \"border_color\": \"[hex color - e.g., #ff6bcb]\",\n  \"text_color\": \"[hex color for chat text - e.g., #efeff1]\",\n  \"username_color\": \"[hex color for usernames - e.g., #9147ff]\",\n  \"font_family\": \"[One of: ${fontOptions}]\",\n  \"border_radius\": \"[One of: None, Subtle, Rounded, Pill]\",\n  \"box_shadow\": \"[One of: None, Soft, Simple 3D, Intense 3D, Sharp]\",\n  \"description\": \"[brief description]\"\n}\n\n${themeType === 'image' ? `\nFirst, create a small pattern image:\n- Simple pattern that tiles seamlessly (NO borders or edges)\n- Low contrast so text above it is readable\n- Simple design, minimal elements\n- 2-3 colors maximum\n- Must be borderless and edge-free for perfect tiling\n- No text or complex elements\n- Avoid any elements that could create visible seams when tiled\n\nThen create the JSON object with the theme settings.` : `\nCreate a JSON object with the theme settings. \n- Make sure to use a nice rgba color for the background_color.\n- DO NOT generate any image, only create a color-based theme.`}\n\nQuick font guide:\n- Modern/tech: Tektur, Consolas, System UI\n- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond\n- Gaming/retro: Press Start 2P, Jacquard, Impact\n- Readable: Atkinson Hyperlegible, Verdana\n- Classic: EB Garamond, Georgia, Times New Roman\n\nBorder radius guide:\n- None (0px): Sharp or pixelated designs\n- Subtle (8px): Slightly rounded corners\n- Rounded (16px): Moderately rounded corners\n- Pill (24px): Playful or cute/soft designs\n\nBox shadow guide:\n- None: Flat designs\n- Soft: Subtle 360 spread\n- Simple 3D: Light layering effect\n- Intense 3D: Strong depth effect\n- Sharp: Pixel-art style\n\nYour response should include both an image and the JSON theme data.` }
+        ]
       }
-    );
+    ];
+
+    const generationConfig = {
+      temperature,
+      topK,
+      topP,
+      seed: randomSeed,
+      maxOutputTokens: 2048,
+      responseModalities: themeType === 'image' ? [Modality.TEXT, Modality.IMAGE] : [Modality.TEXT]
+    };
+
+    const result = await model.generateContent({
+      contents: sdkContents,
+      generationConfig
+    });
+    const response = await result.response; // This is the full response object
     
     // Log a detailed version of the response
     console.log('Gemini response received with status:', response.status, response.statusText);
@@ -234,17 +194,17 @@ Your response should include both an image and the JSON theme data.`
     console.log('DETAILED RESPONSE ANALYSIS:');
     
     // Check raw response format
-    const candidatesCount = response.data.candidates?.length || 0;
-    const hasContent = response.data.candidates?.[0]?.content != null;
-    const hasText = hasContent && response.data.candidates[0].content.parts?.some(p => p.text);
-    const hasImage = hasContent && response.data.candidates[0].content.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
-    const finishReason = response.data.candidates?.[0]?.finishReason || 'unknown';
+    const candidatesCount = response.candidates?.length || 0;
+    const hasContent = response.candidates?.[0]?.content != null;
+    const hasText = hasContent && response.candidates[0].content.parts?.some(p => p.text);
+    const hasImage = hasContent && response.candidates[0].content.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
+    const finishReason = response.candidates?.[0]?.finishReason || 'unknown';
     
     console.log(`Response structure: candidates=${candidatesCount}, hasContent=${hasContent}, hasText=${hasText}, hasImage=${hasImage}, finishReason=${finishReason}`);
     
     // If there's text, try to log a sample
     if (hasText) {
-      const textPart = response.data.candidates[0].content.parts.find(p => p.text);
+      const textPart = response.candidates[0].content.parts.find(p => p.text);
       if (textPart) {
         // Log a small sample of the text content
         const sampleText = textPart.text.substring(0, 200);
@@ -267,7 +227,7 @@ Your response should include both an image and the JSON theme data.`
     
     // Log if an image was generated
     if (hasImage) {
-      const imagePart = response.data.candidates[0].content.parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+      const imagePart = response.candidates[0].content.parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
       console.log('Image found in response:', imagePart.inlineData.mimeType, 'data length:', imagePart.inlineData.data.length);
     }
     
@@ -281,12 +241,12 @@ Your response should include both an image and the JSON theme data.`
       
       // Print the entire response structure for debugging
       console.log('FULL GEMINI RESPONSE:');
-      console.log(JSON.stringify(response.data, null, 4));
+      console.log(JSON.stringify(response, null, 4));
       
       // Handle RECITATION finish reason specially
-      if (response.data.candidates && 
-          response.data.candidates.length > 0 && 
-          response.data.candidates[0].finishReason === 'RECITATION') {
+      if (response.candidates && 
+          response.candidates.length > 0 && 
+          response.candidates[0].finishReason === 'RECITATION') {
         console.log('Received RECITATION finish reason. Retrying with different parameters...');
         
         if (attempt < 2) {
@@ -332,8 +292,8 @@ Your response should include both an image and the JSON theme data.`
       }
       
       // Process each part of the response
-      if (response.data.candidates && response.data.candidates.length > 0) {
-        const parts = response.data.candidates[0]?.content?.parts || [];
+      if (response.candidates && response.candidates.length > 0) {
+        const parts = response.candidates[0]?.content?.parts || [];
         
         let extractedThemeData = null;
         
@@ -499,7 +459,7 @@ Your response should include both an image and the JSON theme data.`
         themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
         
         // Update the theme data in the original response to keep it consistent
-        for (const part of response.data.candidates[0].content.parts) {
+        for (const part of response.candidates[0].content.parts) {
           if (part.text) {
             const jsonMatch = part.text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -563,7 +523,7 @@ Your response should include both an image and the JSON theme data.`
       res.status(400).json({ 
         error: 'Error parsing theme data', 
         details: jsonError.message,
-        partialData: response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.substring(0, 200) || 'No text data found'
+        partialData: response.candidates?.[0]?.content?.parts?.[0]?.text?.substring(0, 200) || 'No text data found'
       });
     }
     
