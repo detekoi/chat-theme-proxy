@@ -2,8 +2,10 @@
 require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
-const { GoogleGenAI, Modality } = require("@google/genai"); // Add this at the top
 const path = require('path');
+
+// Declare variables that will be populated by the dynamic import
+let GoogleGenAI, Modality;
 
 // Determine if we're in development mode
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -89,6 +91,12 @@ const generateThemeStorageKey = (themeId) => `generated-theme-image-${themeId}`;
 
 // Define theme generation endpoint
 app.post('/api/generate-theme', async (req, res) => {
+  // Ensure GoogleGenAI and Modality are loaded
+  if (!GoogleGenAI || !Modality) {
+    console.error("GenAI SDK not initialized yet for /api/generate-theme call");
+    return res.status(503).json({ error: 'Service temporarily unavailable, SDK loading.' });
+  }
+
   try {
     const { prompt, attempt = 0, forceJson = false, previousThemeData, themeType = 'image' } = req.body;
     
@@ -158,53 +166,62 @@ app.post('/api/generate-theme', async (req, res) => {
       console.log(`Retry attempt ${attempt}: Using temperature=${temperature}, topK=${topK}, topP=${topP}`);
     }
     
-    // Call Gemini API with server-side key and modified prompt for better results
-    const genAI = new GoogleGenAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-preview-image-generation"
-    });
+    // Construct the main prompt text
+    let mainPromptText = `${prompt_prefix}Create a visually appealing Twitch chat theme for: "${prompt}".\n\nFirst, for the overall theme, consider the feeling and style of "${prompt}".\n\nNext, create the JSON part for the theme settings:\n{\n  "theme_name": "[A creative theme name inspired by '${prompt}']",\n  "background_color": "[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]",\n  "border_color": "[hex color - e.g., #ff6bcb]",\n  "text_color": "[hex color for chat text - e.g., #efeff1]",\n  "username_color": "[hex color for usernames - e.g., #9147ff]",\n  "font_family": "[One of: ${fontOptions}]",\n  "border_radius": "[One of: None, Subtle, Rounded, Pill]",\n  "box_shadow": "[One of: None, Soft, Simple 3D, Intense 3D, Sharp]",\n  "description": "[A brief description capturing the essence of a '${prompt}' inspired theme]"\n}\n\n${themeType === 'image' ? `\nThen, design a **subtle, abstract, and seamless background pattern image** that complements the *mood and color palette* of a theme inspired by "${prompt}".\n**Important instructions for the background pattern image:**\n- **DO NOT include any literal words, text, or recognizable objects from the prompt "${prompt}" in the image itself.**\n- The pattern should be purely decorative and abstract.\n- It must tile seamlessly without any visible borders or edges.\n- Use low contrast to ensure text displayed over it remains readable.\n- Keep the design simple with minimal elements.\n- Use a maximum of 2-3 colors that harmonize with the overall theme.\n- Focus on creating a texture or a very simple geometric or organic repeating pattern.\n- Ensure it is borderless and edge-free for perfect tiling.\n- Avoid any elements that could create visible seams when tiled.\nExample ideas for abstract patterns: subtle gradients, soft noise, very simple repeating geometric shapes, or minimalist organic textures. The pattern should evoke the *feeling* of "${prompt}" (e.g., for "futuristic", maybe clean lines or subtle tech patterns; for "cozy", maybe soft textures or simple organic shapes) without directly showing it.\n` : `\nCreate a JSON object with the theme settings.\n- Make sure to use a nice rgba color for the background_color.\n- DO NOT generate any image, only create a color-based theme.`}\n\nQuick font guide:\n- Modern/tech: Tektur, Consolas, System UI\n- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond\n- Gaming/retro: Press Start 2P, Jacquard, Impact\n- Readable: Atkinson Hyperlegible, Verdana\n- Classic: EB Garamond, Georgia, Times New Roman\n\nBorder radius guide:\n- None (0px): Sharp or pixelated designs\n- Subtle (8px): Slightly rounded corners\n- Rounded (16px): Moderately rounded corners\n- Pill (24px): Playful or cute/soft designs\n\nBox shadow guide:\n- None: Flat designs\n- Soft: Subtle 360 spread\n- Simple 3D: Light layering effect\n- Intense 3D: Strong depth effect\n- Sharp: Pixel-art style\n\nYour response should include both the JSON theme data and, if requested, the background pattern image.\n`;
 
     const sdkContents = [
       {
         role: "user",
-        parts: [
-          { text: `${prompt_prefix}Create a visually appealing Twitch chat theme for: \"${prompt}\". \n\nFor the JSON part:\n{\n  \"theme_name\": \"[catchy name]\",\n  \"background_color\": \"[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]\",\n  \"border_color\": \"[hex color - e.g., #ff6bcb]\",\n  \"text_color\": \"[hex color for chat text - e.g., #efeff1]\",\n  \"username_color\": \"[hex color for usernames - e.g., #9147ff]\",\n  \"font_family\": \"[One of: ${fontOptions}]\",\n  \"border_radius\": \"[One of: None, Subtle, Rounded, Pill]\",\n  \"box_shadow\": \"[One of: None, Soft, Simple 3D, Intense 3D, Sharp]\",\n  \"description\": \"[brief description]\"\n}\n\n${themeType === 'image' ? `\nFirst, create a small pattern image:\n- Simple pattern that tiles seamlessly (NO borders or edges)\n- Low contrast so text above it is readable\n- Simple design, minimal elements\n- 2-3 colors maximum\n- Must be borderless and edge-free for perfect tiling\n- No text or complex elements\n- Avoid any elements that could create visible seams when tiled\n\nThen create the JSON object with the theme settings.` : `\nCreate a JSON object with the theme settings. \n- Make sure to use a nice rgba color for the background_color.\n- DO NOT generate any image, only create a color-based theme.`}\n\nQuick font guide:\n- Modern/tech: Tektur, Consolas, System UI\n- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond\n- Gaming/retro: Press Start 2P, Jacquard, Impact\n- Readable: Atkinson Hyperlegible, Verdana\n- Classic: EB Garamond, Georgia, Times New Roman\n\nBorder radius guide:\n- None (0px): Sharp or pixelated designs\n- Subtle (8px): Slightly rounded corners\n- Rounded (16px): Moderately rounded corners\n- Pill (24px): Playful or cute/soft designs\n\nBox shadow guide:\n- None: Flat designs\n- Soft: Subtle 360 spread\n- Simple 3D: Light layering effect\n- Intense 3D: Strong depth effect\n- Sharp: Pixel-art style\n\nYour response should include both an image and the JSON theme data.` }
-        ]
+        parts: [ { text: mainPromptText } ]
       }
     ];
 
-    const generationConfig = {
-      temperature,
-      topK,
-      topP,
-      seed: randomSeed,
-      maxOutputTokens: 2048,
-      responseModalities: themeType === 'image' ? [Modality.TEXT, Modality.IMAGE] : [Modality.TEXT]
+    const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+    // Create the config object as seen in the working snippet
+    const callConfig = {
+        temperature,
+        topK,
+        topP,
+        seed: randomSeed,
+        maxOutputTokens: 2048,
+        responseModalities: themeType === 'image' ? [Modality.TEXT, Modality.IMAGE] : [Modality.TEXT]
     };
 
-    const result = await model.generateContent({
-      contents: sdkContents,
-      generationConfig
-    });
-    const response = await result.response; // This is the full response object
-    
-    // Log a detailed version of the response
-    console.log('Gemini response received with status:', response.status, response.statusText);
-    console.log('-----------------------------------------------------------------');
-    console.log('DETAILED RESPONSE ANALYSIS:');
-    
+    // Use the models.generateContent pattern
+    let apiResponse;
+    try {
+      apiResponse = await genAI.models.generateContent({
+        model: "gemini-2.0-flash-preview-image-generation",
+        contents: sdkContents,
+        generationConfig: callConfig
+      });
+    } catch (sdkError) {
+      console.error('Error calling genAI.models.generateContent:', sdkError);
+      return res.status(500).json({
+        error: 'Failed to call Gemini API',
+        details: sdkError.message || sdkError.toString()
+      });
+    }
+
+    // Log the full response for debugging
+    console.log('FULL GEMINI RESPONSE (from genAI.models.generateContent):');
+    console.log(JSON.stringify(apiResponse, null, 4));
+
+    // Adapt the rest of the parsing logic to use apiResponse directly (instead of response = result.response)
+    // The rest of the code remains the same, but replace 'response' with 'apiResponse' where needed
     // Check raw response format
-    const candidatesCount = response.candidates?.length || 0;
-    const hasContent = response.candidates?.[0]?.content != null;
-    const hasText = hasContent && response.candidates[0].content.parts?.some(p => p.text);
-    const hasImage = hasContent && response.candidates[0].content.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
-    const finishReason = response.candidates?.[0]?.finishReason || 'unknown';
+    const candidatesCount = apiResponse.candidates?.length || 0;
+    const hasContent = apiResponse.candidates?.[0]?.content != null;
+    const hasText = hasContent && apiResponse.candidates[0].content.parts?.some(p => p.text);
+    const hasImage = hasContent && apiResponse.candidates[0].content.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
+    const finishReason = apiResponse.candidates?.[0]?.finishReason || 'unknown';
     
     console.log(`Response structure: candidates=${candidatesCount}, hasContent=${hasContent}, hasText=${hasText}, hasImage=${hasImage}, finishReason=${finishReason}`);
     
     // If there's text, try to log a sample
     if (hasText) {
-      const textPart = response.candidates[0].content.parts.find(p => p.text);
+      const textPart = apiResponse.candidates[0].content.parts.find(p => p.text);
       if (textPart) {
         // Log a small sample of the text content
         const sampleText = textPart.text.substring(0, 200);
@@ -227,7 +244,7 @@ app.post('/api/generate-theme', async (req, res) => {
     
     // Log if an image was generated
     if (hasImage) {
-      const imagePart = response.candidates[0].content.parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+      const imagePart = apiResponse.candidates[0].content.parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
       console.log('Image found in response:', imagePart.inlineData.mimeType, 'data length:', imagePart.inlineData.data.length);
     }
     
@@ -239,14 +256,10 @@ app.post('/api/generate-theme', async (req, res) => {
       let themeData = null;
       let backgroundImage = null;
       
-      // Print the entire response structure for debugging
-      console.log('FULL GEMINI RESPONSE:');
-      console.log(JSON.stringify(response, null, 4));
-      
       // Handle RECITATION finish reason specially
-      if (response.candidates && 
-          response.candidates.length > 0 && 
-          response.candidates[0].finishReason === 'RECITATION') {
+      if (apiResponse.candidates && 
+          apiResponse.candidates.length > 0 && 
+          apiResponse.candidates[0].finishReason === 'RECITATION') {
         console.log('Received RECITATION finish reason. Retrying with different parameters...');
         
         if (attempt < 2) {
@@ -292,8 +305,8 @@ app.post('/api/generate-theme', async (req, res) => {
       }
       
       // Process each part of the response
-      if (response.candidates && response.candidates.length > 0) {
-        const parts = response.candidates[0]?.content?.parts || [];
+      if (apiResponse.candidates && apiResponse.candidates.length > 0) {
+        const parts = apiResponse.candidates[0]?.content?.parts || [];
         
         let extractedThemeData = null;
         
@@ -459,7 +472,7 @@ app.post('/api/generate-theme', async (req, res) => {
         themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
         
         // Update the theme data in the original response to keep it consistent
-        for (const part of response.candidates[0].content.parts) {
+        for (const part of apiResponse.candidates[0].content.parts) {
           if (part.text) {
             const jsonMatch = part.text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -508,8 +521,8 @@ app.post('/api/generate-theme', async (req, res) => {
       return res.status(400).json({ 
         error: 'Could not parse theme data from Gemini response',
         responseData: {
-          status: response.status,
-          statusText: response.statusText,
+          status: apiResponse.status,
+          statusText: apiResponse.statusText,
           finishReason: finishReason,
           hasContent: hasContent,
           hasText: hasText,
@@ -523,15 +536,18 @@ app.post('/api/generate-theme', async (req, res) => {
       res.status(400).json({ 
         error: 'Error parsing theme data', 
         details: jsonError.message,
-        partialData: response.candidates?.[0]?.content?.parts?.[0]?.text?.substring(0, 200) || 'No text data found'
+        partialData: apiResponse.candidates?.[0]?.content?.parts?.[0]?.text?.substring(0, 200) || 'No text data found'
       });
     }
     
   } catch (error) {
-    console.error('Error calling Gemini API:', error);
+    console.error('Error in /api/generate-theme route:', error);
+    // The error object from @google/genai might be different from AxiosError
+    // Log its structure to adapt your error reporting
+    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     res.status(500).json({ 
       error: 'Failed to generate theme',
-      details: error.response?.data?.error || error.message 
+      details: error.message || (error.response?.data?.error?.message || 'Unknown SDK error')
     });
   }
 });
@@ -608,7 +624,27 @@ app.get('/', (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Main function to initialize GenAI and start the server
+async function main() {
+  try {
+    const genAIModule = await import('@google/genai');
+    GoogleGenAI = genAIModule.GoogleGenAI;
+    Modality = genAIModule.Modality;
+    console.log('@google/genai SDK loaded successfully.');
+
+    // Start the server only after the SDK is loaded
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Gemini API Key Loaded: ${!!GEMINI_API_KEY}`);
+      if (!GEMINI_API_KEY) {
+        console.error("GEMINI_API_KEY is not set. The application will not be able to call the Gemini API.");
+      }
+    });
+
+  } catch (err) {
+    console.error("Failed to load @google/genai SDK or start server:", err);
+    process.exit(1);
+  }
+}
+
+main();
