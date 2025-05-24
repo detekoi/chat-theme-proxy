@@ -160,7 +160,7 @@ app.post('/api/generate-theme', async (req, res) => {
     
     // Call Gemini API with server-side key and modified prompt for better results
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{
           parts: [{
