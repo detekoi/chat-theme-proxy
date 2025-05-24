@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+
 // Declare variables that will be populated by the dynamic import
 let GoogleGenAI, Modality;
 
@@ -14,10 +15,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Only serve static files and test interface in development mode
+// Serve static files 
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Only log development mode message
 if (isDevelopment) {
   console.log('Running in development mode with test interface enabled');
-  app.use(express.static(path.join(__dirname, 'public')));
 }
 
 // Get port from environment variable
@@ -178,29 +181,45 @@ app.post('/api/generate-theme', async (req, res) => {
 
     const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-    // Create the config object as seen in the working snippet
-    const callConfig = {
-        temperature,
-        topK,
-        topP,
-        seed: randomSeed,
-        maxOutputTokens: 2048,
+    // ---- START OF STRICTEST DOC MATCH TEST ----
+    // Configuration strictly matching ONLY what's shown in the image generation doc snippet.
+    const strictMatchConfig = {
         responseModalities: themeType === 'image' ? [Modality.TEXT, Modality.IMAGE] : [Modality.TEXT]
+        // NO other parameters like temperature, topK, maxOutputTokens are included here
+        // to exactly match the provided documentation snippet for this specific model.
     };
 
-    // Use the models.generateContent pattern
+    // The documentation snippet uses a simple string for 'contents'.
+    // Your mainPromptText is the closest to this for a direct text-to-image prompt.
+    const simpleContents = mainPromptText;
+
     let apiResponse;
     try {
+      console.log('Attempting API call with strictMatchConfig:', JSON.stringify(strictMatchConfig));
+      console.log('Attempting API call with simpleContents (first 100 chars):', simpleContents.substring(0,100));
+
       apiResponse = await genAI.models.generateContent({
-        model: "gemini-2.0-flash-preview-image-generation",
-        contents: sdkContents,
-        generationConfig: callConfig
+        model: "gemini-2.0-flash-preview-image-generation", // Assuming this model name is correct from docs
+        contents: simpleContents,   // Using simple string for contents
+        config: strictMatchConfig   // Using config with only responseModalities
+        // No 'generationConfig' and other parameters (temperature, topK etc.) are omitted from 'config' for this test.
       });
+    // ---- END OF STRICTEST DOC MATCH TEST ----
     } catch (sdkError) {
-      console.error('Error calling genAI.models.generateContent:', sdkError);
+      console.error('Error calling genAI.models.generateContent with strict match:', sdkError);
+      const errorMessage = sdkError.message || sdkError.toString();
+      // Extract more details if the error is an object with a nested error/response
+      let errorDetails = 'No additional details';
+      if (typeof sdkError === 'object' && sdkError !== null) {
+        if (sdkError.cause) errorDetails = JSON.stringify(sdkError.cause);
+        else if (sdkError.response && sdkError.response.data) errorDetails = JSON.stringify(sdkError.response.data);
+        else errorDetails = JSON.stringify(sdkError); // Fallback to stringifying the error itself
+      }
+      console.error('SDK Error details:', errorDetails);
       return res.status(500).json({
         error: 'Failed to call Gemini API',
-        details: sdkError.message || sdkError.toString()
+        details: errorMessage,
+        sdkErrorDetails: errorDetails
       });
     }
 

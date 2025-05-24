@@ -741,7 +741,7 @@
                     const shouldGenerateImage = document.getElementById('generateImageCheckbox').checked;
                     
                     // Call the local proxy service
-                    const response = await fetch('https://theme-proxy-361545143046.us-central1.run.app/api/generate-theme', {
+                    const response = await fetch('/api/generate-theme', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
