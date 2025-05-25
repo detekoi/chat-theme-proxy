@@ -288,43 +288,11 @@ app.post('/api/generate-theme', async (req, res) => {
       if (!response.ok) {
         const errorData = await response.text();
         console.error('REST API Error:', response.status, errorData);
-        
-        // If we get a country restriction error, fall back to text-only generation
-        if (errorData.includes('Image generation is not available in your country') || 
-            errorData.includes('FAILED_PRECONDITION')) {
-          console.log('Image generation restricted, falling back to text-only theme generation...');
-          
-          // Try with a text-only model instead
-          const textOnlyResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Agent': 'ChatThemeProxy/1.0 (https://theme-proxy-361545143046.us-central1.run.app)',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: simpleContents.replace('Then, design a **subtle, abstract, and seamless background pattern image**', 'Create a color-based theme without any background image') }]
-              }],
-              generationConfig: {
-                responseModalities: ["TEXT"]
-              }
-            })
-          });
-          
-          if (textOnlyResponse.ok) {
-            apiResponse = await textOnlyResponse.json();
-            console.log('Text-only fallback successful');
-          } else {
-            throw new Error(`REST API Error: ${response.status} - ${errorData}`);
-          }
-        } else {
-          throw new Error(`REST API Error: ${response.status} - ${errorData}`);
-        }
-      } else {
-        apiResponse = await response.json();
-        console.log('REST API response received successfully');
+        throw new Error(`REST API Error: ${response.status} - ${errorData}`);
       }
+      
+      apiResponse = await response.json();
+      console.log('REST API response received successfully');
     // ---- END OF STRICTEST DOC MATCH TEST ----
     } catch (sdkError) {
       console.error('Error calling genAI.models.generateContent with strict match:', sdkError);
@@ -735,9 +703,9 @@ app.get('/api/test-gemini', async (req, res) => {
 
     const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     
-    // Test with a simple text-only model first
+    // Test with the image generation model
     const testResponse = await genAI.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash-preview-image-generation",
       contents: "Say hello in JSON format: {\"message\": \"hello\"}",
       config: {
         responseModalities: [Modality.TEXT]
@@ -769,7 +737,7 @@ app.get('/api/test-image-model', async (req, res) => {
     }
 
     // Test with REST API directly
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
