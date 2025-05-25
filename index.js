@@ -198,12 +198,36 @@ app.post('/api/generate-theme', async (req, res) => {
       console.log('Attempting API call with strictMatchConfig:', JSON.stringify(strictMatchConfig));
       console.log('Attempting API call with simpleContents (first 100 chars):', simpleContents.substring(0,100));
 
-      apiResponse = await genAI.models.generateContent({
-        model: "gemini-2.0-flash-preview-image-generation", // Assuming this model name is correct from docs
-        contents: simpleContents,   // Using simple string for contents
-        config: strictMatchConfig   // Using config with only responseModalities
-        // No 'generationConfig' and other parameters (temperature, topK etc.) are omitted from 'config' for this test.
-      });
+      // Try image generation model first, fall back to text-only if not available
+      let modelName = "gemini-2.0-flash-preview-image-generation";
+      let configToUse = strictMatchConfig;
+      
+      try {
+        apiResponse = await genAI.models.generateContent({
+          model: modelName,
+          contents: simpleContents,
+          config: configToUse
+        });
+      } catch (modelError) {
+        console.log('Image generation model not available, falling back to text-only model');
+        console.log('Model error:', modelError.message);
+        
+        // Fall back to regular Gemini model for text-only generation
+        modelName = "gemini-2.0-flash-exp";
+        configToUse = { responseModalities: [Modality.TEXT] };
+        
+        // Modify prompt for text-only generation
+        const textOnlyPrompt = simpleContents.replace(/Then, design a \*\*subtle.*?tiling\.\n/s, '')
+          .replace(/\nThen, design.*$/s, '')
+          .replace(/Your response should include both the JSON theme data and.*$/s, 'Your response should include the JSON theme data only.');
+        
+        console.log('Attempting fallback with text-only model:', modelName);
+        apiResponse = await genAI.models.generateContent({
+          model: modelName,
+          contents: textOnlyPrompt,
+          config: configToUse
+        });
+      }
     // ---- END OF STRICTEST DOC MATCH TEST ----
     } catch (sdkError) {
       console.error('Error calling genAI.models.generateContent with strict match:', sdkError);
