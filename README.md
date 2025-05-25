@@ -1,6 +1,6 @@
 # Twitch Chat Theme Generator Proxy
 
-A simple Express server that acts as a proxy for the Gemini API, generating Twitch chat themes based on user prompts.
+A simple Express server that acts as a proxy for the Gemini API, generating Twitch chat themes for my [Twitch Chat Overlay](https://github.com/detekoi/compact-chat-overlay) based on user prompts.
 
 ## Features
 
