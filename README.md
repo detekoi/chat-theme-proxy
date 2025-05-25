@@ -113,19 +113,40 @@ Before deploying, ensure you have:
    - Artifact Registry Writer
 4. Generated and downloaded the Service Account key JSON
 
+## Live Deployment
+
+The service is currently deployed and available at:
+**https://theme-proxy-361545143046.us-central1.run.app**
+
+### API Usage
+
+Generate a theme with background image:
+```bash
+curl -X POST https://theme-proxy-361545143046.us-central1.run.app/api/generate-theme \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"cozy cabin","themeType":"image","attempt":0}'
+```
+
+Generate a text-only theme:
+```bash
+curl -X POST https://theme-proxy-361545143046.us-central1.run.app/api/generate-theme \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"cyberpunk neon","themeType":"color","attempt":0}'
+```
+
 ## Background Image Implementation
 
 ### Overview
 
-The theme generator uses Gemini 2.0 Flash's image generation capabilities to create subtle tiled background patterns that match the theme generated from the user's prompt. These patterns are applied to both the chat window and popup messages.
+The theme generator uses Gemini 2.0 Flash Preview Image Generation (`gemini-2.0-flash-preview-image-generation`) to create subtle tiled background patterns that match the theme generated from the user's prompt. The service uses the Gemini REST API directly for optimal compatibility.
 
 ### Technical Details
 
 #### Image Format and Storage
 
-- Images are returned from Gemini as base64-encoded data URLs
-- These URLs are stored directly in the theme configuration
-- The data URLs are applied using CSS variables: `--chat-bg-image: url('data:image/...')`
+- Images are returned from Gemini as base64-encoded PNG data
+- These are included in the API response as `backgroundImage.data` and `backgroundImage.mimeType`
+- The data can be used directly in CSS as `data:image/png;base64,{data}`
 
 #### CSS Implementation
 
@@ -157,22 +178,31 @@ border-radius: inherit;
 pointer-events: none;
 ```
 
-#### Theme Data Structure
+#### API Response Structure
 
-The theme data JSON now includes an additional field:
+The API returns a JSON object with the following structure:
 
 ```json
 {
-  "theme_name": "Example Theme",
-  "background_color": "rgba(12, 20, 69, 0.85)",
-  "border_color": "#ff6bcb",
-  "text_color": "#efeff1",
-  "username_color": "#9147ff",
-  "font_family": "Tektur",
-  "border_radius": "8px",
-  "box_shadow": "soft",
-  "description": "A short description of the theme",
-  "background_image": "data:image/png;base64,..." // New field
+  "themeData": {
+    "theme_name": "Whispering Pines",
+    "background_color": "rgba(40, 30, 25, 0.8)",
+    "border_color": "#a08060",
+    "text_color": "#f0f0e8",
+    "username_color": "#d2b48c",
+    "font_family": "Georgia",
+    "border_radius": "Subtle",
+    "box_shadow": "Soft",
+    "description": "Embrace the warmth of a secluded retreat with this cozy wood-toned chat theme.",
+    "border_radius_value": "8px",
+    "box_shadow_value": "rgba(99, 99, 99, 0.2) 0px 2px 8px 0px"
+  },
+  "backgroundImage": {
+    "mimeType": "image/png",
+    "data": "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zU..."
+  },
+  "maxAttemptsReached": false,
+  "noImageAvailable": false
 }
 ```
 
@@ -182,12 +212,15 @@ The theme data JSON now includes an additional field:
 
 The default tile size is set to 320px. This can be adjusted by changing the `background-size` property in the CSS.
 
+#### Request Parameters
+
+- `prompt`: String describing the desired theme (e.g., "cozy cabin", "cyberpunk neon")
+- `themeType`: "image" for themes with background images, "color" for color-only themes
+- `attempt`: Number indicating retry attempt (usually 0 for first request)
+
 #### Disabling Background Images
 
-If you want to disable background images for a specific theme, you can:
-
-1. Set `theme.backgroundImage = null` in the theme object
-2. Remove the CSS variable with `document.documentElement.style.removeProperty('--chat-bg-image')`
+To generate themes without background images, set `themeType: "color"` in your request.
 
 ### Troubleshooting
 
@@ -204,12 +237,27 @@ If the background image doesn't appear:
 
 If you experience performance issues with background images:
 
-1. You can disable background images entirely using the provided toggle option for low-powered devices
+1. Use `themeType: "color"` for faster generation without images
+2. Cache generated themes on the client side to avoid repeated API calls
 
-### Future Enhancements
+## Implementation Notes
 
-Potential future improvements to this feature:
+### Gemini API Configuration
 
-1. Implement image caching to reduce data usage
-2. Add more controls for adjusting the background pattern (size, etc.)
-3. Support for different tiling modes (e.g., mirror, rotate)
+The service uses the Gemini REST API directly with the following configuration:
+- Model: `gemini-2.0-flash-preview-image-generation`
+- Response modalities: `["TEXT", "IMAGE"]`
+- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/`
+
+### Error Handling
+
+The service includes robust error handling and retry logic:
+- Automatic retries for transient failures
+- Graceful degradation when image generation fails
+- Detailed error messages for debugging
+
+### Security
+
+- API keys are stored securely in Google Cloud Secret Manager
+- All requests are validated and sanitized
+- Rate limiting and abuse prevention measures are in place
