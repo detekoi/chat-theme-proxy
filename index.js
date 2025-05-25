@@ -198,36 +198,56 @@ app.post('/api/generate-theme', async (req, res) => {
       console.log('Attempting API call with strictMatchConfig:', JSON.stringify(strictMatchConfig));
       console.log('Attempting API call with simpleContents (first 100 chars):', simpleContents.substring(0,100));
 
-      // Try image generation model first, fall back to text-only if not available
-      let modelName = "gemini-2.0-flash-preview-image-generation";
-      let configToUse = strictMatchConfig;
-      
+      // First, try to list available models to debug the issue
       try {
-        apiResponse = await genAI.models.generateContent({
-          model: modelName,
-          contents: simpleContents,
-          config: configToUse
-        });
-      } catch (modelError) {
-        console.log('Image generation model not available, falling back to text-only model');
-        console.log('Model error:', modelError.message);
-        
-        // Fall back to regular Gemini model for text-only generation
-        modelName = "gemini-2.0-flash-exp";
-        configToUse = { responseModalities: [Modality.TEXT] };
-        
-        // Modify prompt for text-only generation
-        const textOnlyPrompt = simpleContents.replace(/Then, design a \*\*subtle.*?tiling\.\n/s, '')
-          .replace(/\nThen, design.*$/s, '')
-          .replace(/Your response should include both the JSON theme data and.*$/s, 'Your response should include the JSON theme data only.');
-        
-        console.log('Attempting fallback with text-only model:', modelName);
-        apiResponse = await genAI.models.generateContent({
-          model: modelName,
-          contents: textOnlyPrompt,
-          config: configToUse
-        });
+        console.log('Checking available models...');
+        const models = await genAI.models.list();
+        console.log('Models response structure:', typeof models, Object.keys(models || {}));
+        if (models && models.models) {
+          const modelNames = models.models.map(m => m.name || m.id || m);
+          console.log('Available models:', modelNames.slice(0, 15)); // Log first 15 models
+          const imageModels = modelNames.filter(name => 
+            String(name).toLowerCase().includes('image') || 
+            String(name).toLowerCase().includes('generation') ||
+            String(name).includes('2.0-flash')
+          );
+          console.log('Image/generation related models:', imageModels);
+        } else {
+          console.log('Models response:', JSON.stringify(models, null, 2));
+        }
+      } catch (listError) {
+        console.log('Could not list models:', listError.message);
+        console.log('List error details:', listError);
       }
+
+      // Use REST API directly since SDK doesn't have access to image generation models
+      console.log('Using direct REST API call for image generation...');
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: simpleContents }
+            ]
+          }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"]
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('REST API Error:', response.status, errorData);
+        throw new Error(`REST API Error: ${response.status} - ${errorData}`);
+      }
+      
+      apiResponse = await response.json();
+      console.log('REST API response received successfully');
     // ---- END OF STRICTEST DOC MATCH TEST ----
     } catch (sdkError) {
       console.error('Error calling genAI.models.generateContent with strict match:', sdkError);
@@ -623,6 +643,101 @@ app.get('/api/debug', (req, res) => {
     memoryUsage: process.memoryUsage(),
     serverUptime: process.uptime()
   });
+});
+
+// Test endpoint to verify Gemini API key and basic functionality
+app.get('/api/test-gemini', async (req, res) => {
+  try {
+    if (!GoogleGenAI || !Modality) {
+      return res.status(503).json({ error: 'SDK not loaded' });
+    }
+
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'API key not configured' });
+    }
+
+    const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    
+    // Test with a simple text-only model first
+    const testResponse = await genAI.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: "Say hello in JSON format: {\"message\": \"hello\"}",
+      config: {
+        responseModalities: [Modality.TEXT]
+      }
+    });
+
+    res.json({
+      success: true,
+      apiKeyConfigured: true,
+      sdkLoaded: true,
+      testResponse: testResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'No text response'
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: 'Gemini API test failed',
+      details: error.message,
+      apiKeyConfigured: !!GEMINI_API_KEY,
+      sdkLoaded: !!(GoogleGenAI && Modality)
+    });
+  }
+});
+
+// Test endpoint specifically for image generation model using REST API
+app.get('/api/test-image-model', async (req, res) => {
+  try {
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'API key not configured' });
+    }
+
+    // Test with REST API directly
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: "Create a simple blue square image" }]
+        }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"]
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      return res.status(500).json({
+        error: 'REST API test failed',
+        details: errorData,
+        status: response.status,
+        apiKeyConfigured: !!GEMINI_API_KEY
+      });
+    }
+
+    const testResponse = await response.json();
+    const hasText = testResponse.candidates?.[0]?.content?.parts?.some(p => p.text);
+    const hasImage = testResponse.candidates?.[0]?.content?.parts?.some(p => p.inlineData);
+
+    res.json({
+      success: true,
+      modelWorking: true,
+      hasText,
+      hasImage,
+      partsCount: testResponse.candidates?.[0]?.content?.parts?.length || 0,
+      apiMethod: 'REST'
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: 'Image generation model test failed',
+      details: error.message,
+      apiKeyConfigured: !!GEMINI_API_KEY,
+      apiMethod: 'REST'
+    });
+  }
 });
 
 // Test endpoint to provide a sample theme without calling Gemini API

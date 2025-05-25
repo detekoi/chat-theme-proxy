@@ -9,7 +9,7 @@ RUN npm install --production
 COPY . ./
 
 # Set environment variables
-ENV PORT=8080
+ENV PORT=8091
 ENV NODE_ENV=production
 
 CMD [ "npm", "start" ]
