@@ -181,43 +181,55 @@ app.post('/api/generate-theme', async (req, res) => {
 
     const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-    // Use the new SDK with correct model name
+    // Use REST API directly (SDK has geographic routing issues)
     let apiResponse;
     try {
-      console.log('Using new @google/genai SDK with gemini-2.0-flash-exp model');
+      console.log('Using REST API directly with gemini-2.0-flash-preview-image-generation model');
       
-      // Try SDK approach first with the experimental model
-      const sdkResponse = await genAI.models.generateContent({
-        model: "gemini-2.0-flash-exp",
-        contents: mainPromptText,
-        config: {
-          responseModalities: themeType === 'image' ? [Modality.TEXT, Modality.IMAGE] : [Modality.TEXT]
-        }
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Client': 'genai-js/1.0.0'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: mainPromptText }]
+          }],
+          generationConfig: {
+            responseModalities: themeType === 'image' ? ["TEXT", "IMAGE"] : ["TEXT"]
+          }
+        })
       });
       
-      apiResponse = sdkResponse.response;
-      console.log('SDK call successful with gemini-2.0-flash-exp');
-    // ---- END OF STRICTEST DOC MATCH TEST ----
-    } catch (sdkError) {
-      console.error('Error calling genAI.models.generateContent with strict match:', sdkError);
-      const errorMessage = sdkError.message || sdkError.toString();
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('REST API Error:', response.status, errorData);
+        throw new Error(`REST API Error: ${response.status} - ${errorData}`);
+      }
+      
+      apiResponse = await response.json();
+      console.log('REST API call successful');
+    } catch (apiError) {
+      console.error('Error calling REST API:', apiError);
+      const errorMessage = apiError.message || apiError.toString();
       // Extract more details if the error is an object with a nested error/response
       let errorDetails = 'No additional details';
-      if (typeof sdkError === 'object' && sdkError !== null) {
-        if (sdkError.cause) errorDetails = JSON.stringify(sdkError.cause);
-        else if (sdkError.response && sdkError.response.data) errorDetails = JSON.stringify(sdkError.response.data);
-        else errorDetails = JSON.stringify(sdkError); // Fallback to stringifying the error itself
+      if (typeof apiError === 'object' && apiError !== null) {
+        if (apiError.cause) errorDetails = JSON.stringify(apiError.cause);
+        else if (apiError.response && apiError.response.data) errorDetails = JSON.stringify(apiError.response.data);
+        else errorDetails = JSON.stringify(apiError); // Fallback to stringifying the error itself
       }
-      console.error('SDK Error details:', errorDetails);
+      console.error('API Error details:', errorDetails);
       return res.status(500).json({
         error: 'Failed to call Gemini API',
         details: errorMessage,
-        sdkErrorDetails: errorDetails
+        apiErrorDetails: errorDetails
       });
     }
 
     // Log the full response for debugging
-    console.log('FULL GEMINI RESPONSE (from genAI.models.generateContent):');
+    console.log('FULL GEMINI RESPONSE (from REST API):');
     console.log(JSON.stringify(apiResponse, null, 4));
 
     // Adapt the rest of the parsing logic to use apiResponse directly (instead of response = result.response)
@@ -607,20 +619,27 @@ app.get('/api/test-gemini', async (req, res) => {
 
     const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     
-    // Test with the image generation model
+    // Test with the image generation model using SDK
     const testResponse = await genAI.models.generateContent({
-      model: "gemini-2.0-flash-exp",
-      contents: "Say hello in JSON format: {\"message\": \"hello\"}",
+      model: "gemini-2.0-flash-preview-image-generation",
+      contents: "Create a simple red circle image",
       config: {
-        responseModalities: [Modality.TEXT]
+        responseModalities: [Modality.TEXT, Modality.IMAGE]
       }
     });
+
+    const hasText = testResponse.response?.candidates?.[0]?.content?.parts?.some(p => p.text);
+    const hasImage = testResponse.response?.candidates?.[0]?.content?.parts?.some(p => p.inlineData);
 
     res.json({
       success: true,
       apiKeyConfigured: true,
       sdkLoaded: true,
-      testResponse: testResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'No text response'
+      hasText,
+      hasImage,
+      partsCount: testResponse.response?.candidates?.[0]?.content?.parts?.length || 0,
+      apiMethod: 'SDK',
+      testResponse: testResponse.response?.candidates?.[0]?.content?.parts?.[0]?.text?.substring(0, 100) || 'No text response'
     });
 
   } catch (error) {
@@ -628,7 +647,8 @@ app.get('/api/test-gemini', async (req, res) => {
       error: 'Gemini API test failed',
       details: error.message,
       apiKeyConfigured: !!GEMINI_API_KEY,
-      sdkLoaded: !!(GoogleGenAI && Modality)
+      sdkLoaded: !!(GoogleGenAI && Modality),
+      apiMethod: 'SDK'
     });
   }
 });
@@ -641,7 +661,7 @@ app.get('/api/test-image-model', async (req, res) => {
     }
 
     // Test with REST API directly
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
