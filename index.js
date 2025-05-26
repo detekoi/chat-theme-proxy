@@ -170,7 +170,7 @@ app.post('/api/generate-theme', async (req, res) => {
     }
     
     // Construct the main prompt text
-    let mainPromptText = `${prompt_prefix}Create a visually appealing Twitch chat theme for: "${prompt}".\n\nFirst, for the overall theme, consider the feeling and style of "${prompt}".\n\nNext, create the JSON part for the theme settings:\n{\n  "theme_name": "[A creative theme name inspired by '${prompt}']",\n  "background_color": "[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]",\n  "border_color": "[hex color - e.g., #ff6bcb]",\n  "text_color": "[hex color for chat text - e.g., #efeff1]",\n  "username_color": "[hex color for usernames - e.g., #9147ff]",\n  "font_family": "[One of: ${fontOptions}]",\n  "border_radius": "[One of: None, Subtle, Rounded, Pill]",\n  "box_shadow": "[One of: None, Soft, Simple 3D, Intense 3D, Sharp]",\n  "description": "[A brief description capturing the essence of a '${prompt}' inspired theme]"\n}\n\n${themeType === 'image' ? `\nThen, design a **subtle, abstract, and seamless background pattern image** that complements the *mood and color palette* of a theme inspired by "${prompt}".\n**Important instructions for the background pattern image:**\n- **DO NOT include any literal words, text, or recognizable objects from the prompt "${prompt}" in the image itself.**\n- The pattern should be purely decorative and abstract.\n- It must tile seamlessly without any visible borders or edges.\n- Use low contrast to ensure text displayed over it remains readable.\n- Keep the design simple with minimal elements.\n- Use a maximum of 2-3 colors that harmonize with the overall theme.\n- Focus on creating a texture or a very simple geometric or organic repeating pattern.\n- Ensure it is borderless and edge-free for perfect tiling.\n- Avoid any elements that could create visible seams when tiled.\nExample ideas for abstract patterns: subtle gradients, soft noise, very simple repeating geometric shapes, or minimalist organic textures. The pattern should evoke the *feeling* of "${prompt}" (e.g., for "futuristic", maybe clean lines or subtle tech patterns; for "cozy", maybe soft textures or simple organic shapes) without directly showing it.\n` : `\nCreate a JSON object with the theme settings.\n- Make sure to use a nice rgba color for the background_color.\n- DO NOT generate any image, only create a color-based theme.`}\n\nQuick font guide:\n- Modern/tech: Tektur, Consolas, System UI\n- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond\n- Gaming/retro: Press Start 2P, Jacquard, Impact\n- Readable: Atkinson Hyperlegible, Verdana\n- Classic: EB Garamond, Georgia, Times New Roman\n\nBorder radius guide:\n- None (0px): Sharp or pixelated designs\n- Subtle (8px): Slightly rounded corners\n- Rounded (16px): Moderately rounded corners\n- Pill (24px): Playful or cute/soft designs\n\nBox shadow guide:\n- None: Flat designs\n- Soft: Subtle 360 spread\n- Simple 3D: Light layering effect\n- Intense 3D: Strong depth effect\n- Sharp: Pixel-art style\n\nYour response should include both the JSON theme data and, if requested, the background pattern image.\n`;
+    let mainPromptText = `${prompt_prefix}Create a visually appealing Twitch chat theme for: "${prompt}".\n\nFirst, for the overall theme, consider the feeling and style of "${prompt}".\n\nNext, create the JSON part for the theme settings:\n{\n  "theme_name": "[A creative theme name inspired by '${prompt}']",\n  "background_color": "[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]",\n  "border_color": "[hex color - e.g., #ff6bcb]",\n  "text_color": "[hex color for chat text - e.g., #efeff1]",\n  "username_color": "[hex color for usernames - e.g., #9147ff]",\n  "font_family": "[One of: ${fontOptions}]",\n  "border_radius": "[One of: None, Subtle, Rounded, Pill]",\n  "box_shadow": "[One of: None, Soft, Simple 3D, Intense 3D, Sharp]",\n  "description": "[A brief description capturing the essence of a '${prompt}' inspired theme]"\n}\n\n${themeType === 'image' ? `\nThen, design a **subtle and seamless background pattern image** that complements the *mood and color palette* of a theme inspired by "${prompt}".\n**Important instructions for the background pattern image:**\n- **DO NOT include any literal words or text from the prompt "${prompt}" in the image itself.**\n- The pattern should be decorative and visually appealing.\n- It must tile seamlessly without any visible borders or edges.\n- Use low contrast to ensure text displayed over it remains readable.\n- Keep the design simple with minimal elements.\n- Use a maximum of 2-3 colors that harmonize with the overall theme.\n- Focus on creating a texture or repeating pattern that represents the theme.\n- Ensure it is borderless and edge-free for perfect tiling.\n- Avoid any elements that could create visible seams when tiled.\nExample ideas for patterns: subtle gradients, soft textures, repeating shapes, or thematic elements. The pattern should evoke the *feeling* of "${prompt}" (e.g., for "futuristic", maybe tech-inspired patterns; for "cozy", maybe warm textures or simple shapes) without directly showing it.\n` : `\nCreate a JSON object with the theme settings.\n- Make sure to use a nice rgba color for the background_color.\n- DO NOT generate any image, only create a color-based theme.`}\n\nQuick font guide:\n- Modern/tech: Tektur, Consolas, System UI\n- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond\n- Gaming/retro: Press Start 2P, Jacquard, Impact\n- Readable: Atkinson Hyperlegible, Verdana\n- Classic: EB Garamond, Georgia, Times New Roman\n\nBorder radius guide:\n- None (0px): Sharp or pixelated designs\n- Subtle (8px): Slightly rounded corners\n- Rounded (16px): Moderately rounded corners\n- Pill (24px): Playful or cute/soft designs\n\nBox shadow guide:\n- None: Flat designs\n- Soft: Subtle 360 spread\n- Simple 3D: Light layering effect\n- Intense 3D: Strong depth effect\n- Sharp: Pixel-art style\n\nYour response should include both the JSON theme data and, if requested, the background pattern image.\n`;
 
     const sdkContents = [
       {
@@ -286,7 +286,7 @@ app.post('/api/generate-theme', async (req, res) => {
           apiResponse.candidates[0].finishReason === 'RECITATION') {
         console.log('Received RECITATION finish reason. Retrying with different parameters...');
         
-        if (attempt < 2) {
+        if (attempt < 5) {
           // Try again with completely different parameters for next attempt
           const nextAttempt = attempt + 1;
           
@@ -439,7 +439,7 @@ app.post('/api/generate-theme', async (req, res) => {
       }
       if (themeData) {
         // Check if we have a background image when themeType is 'image' and this isn't a high-attempt retry
-        if (themeType === 'image' && !backgroundImage && attempt < 2) {
+        if (themeType === 'image' && !backgroundImage && attempt < 5) {
           console.log(`No background image was generated. Retrying with increased temperature... (attempt ${attempt + 1})`);
           
           // Add CSS values to theme data for consistent experience between attempts
@@ -456,7 +456,7 @@ app.post('/api/generate-theme', async (req, res) => {
           // This allows clients to show intermediate themes while waiting for one with an image
           return res.status(202).json({
             retry: true,
-            message: `No background image was generated. Retrying (attempt ${attempt + 1}/2)...`,
+            message: `No background image was generated. Retrying (attempt ${attempt + 1}/5)...`,
             attempt: attempt + 1,
             themeData: themeData, // Include the theme data so client can use it while retrying
             includesThemeData: true // Extra flag to make it super obvious we have theme data
@@ -520,7 +520,7 @@ app.post('/api/generate-theme', async (req, res) => {
         
         // If we've made the maximum number of attempts but still don't have an image,
         // add that information to the response so clients know not to wait for an image
-        const maxAttemptsReached = attempt >= 2 && !backgroundImage;
+        const maxAttemptsReached = attempt >= 5 && !backgroundImage;
         
         return res.json({
           themeData: themeData,
@@ -532,11 +532,11 @@ app.post('/api/generate-theme', async (req, res) => {
       
       // If we can't extract valid JSON but we have an existing theme and less than max retries,
       // retry with different params
-      if (attempt < 2) {
+      if (attempt < 5) {
         console.log(`No valid theme data found. Unleashing creative force... (attempt ${attempt + 1})`);
         return res.status(202).json({
           retry: true,
-          message: `No valid theme data received. Retrying (attempt ${attempt + 1}/2)...`,
+          message: `No valid theme data received. Retrying (attempt ${attempt + 1}/5)...`,
           attempt: attempt + 1
         });
       }
