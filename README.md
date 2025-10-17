@@ -138,7 +138,7 @@ curl -X POST https://theme-proxy-361545143046.us-west2.run.app/api/generate-them
 
 ### Overview
 
-The theme generator uses Gemini 2.5 Flash Image (`gemini-2.5-flash-image`) with structured output to create subtle tiled background patterns that match the theme generated from the user's prompt. The service uses the Gemini REST API directly for optimal compatibility and reliability.
+The theme generator uses a **two-step approach** combining two Gemini models to create subtle tiled background patterns that match the theme generated from the user's prompt. The service uses the Gemini REST API directly for optimal compatibility and reliability.
 
 ### Technical Details
 
@@ -247,7 +247,7 @@ If you experience performance issues with background images:
 The service uses a **two-step approach** combining two Gemini models:
 
 #### Step 1: Theme Data Generation (gemini-2.5-flash-lite)
-- **Model**: `gemini-2.5-flash-lite-preview-09-2025`
+- **Model**: `gemini-2.5-flash-lite`
 - **Purpose**: Generate theme JSON data + image prompt
 - **Features**: 
   - Structured output with JSON schema validation
