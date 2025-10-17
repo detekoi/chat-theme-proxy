@@ -107,26 +107,13 @@ app.post('/api/generate-theme', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     
-    console.log(`Processing theme generation request for prompt: "${prompt}", attempt: ${attempt}, forceJson: ${forceJson}, themeType: ${themeType}`);
-    
-    // Log additional details for debugging
-    if (VERBOSE_LOGGING) {
-      console.log(`Request body: ${JSON.stringify({
-        prompt,
-        attempt,
-        forceJson,
-        themeType,
-        hasPreviousTheme: !!previousThemeData,
-        previousThemeName: previousThemeData ? previousThemeData.theme_name : null
-      })}`);
-      
-      // Log client headers for debugging connection issues
-      console.log('Client headers:', {
-        'user-agent': req.headers['user-agent'],
-        'content-type': req.headers['content-type'],
-        'accept': req.headers.accept
-      });
-    }
+    console.log('\n' + '='.repeat(70));
+    console.log(`🎨 THEME GENERATION REQUEST`);
+    console.log('='.repeat(70));
+    console.log(`  Prompt: "${prompt}"`);
+    console.log(`  Type: ${themeType === 'image' ? '🖼️  with background image' : '🎨 color only'}`);
+    console.log(`  Attempt: ${attempt + 1}/3`);
+    console.log('='.repeat(70) + '\n');
     
     // Generate list of available font names for the prompt
     const fontOptions = availableFonts.map(font => `'${font.name}'`).join(', ');
@@ -268,8 +255,10 @@ Quick font guide:
     // STEP 1: Use gemini-2.5-flash-lite with structured output to get theme JSON + image prompt
     let themeResponse;
     try {
-      console.log('Step 1: Calling gemini-2.5-flash-lite with structured output for theme data...');
-      
+      console.log('┌─ STEP 1: Theme Data Generation ─────────────────────────────────┐');
+      console.log('│ Model: gemini-2.5-flash-lite (structured output)                │');
+      console.log('└──────────────────────────────────────────────────────────────────┘');
+
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
@@ -297,7 +286,18 @@ Quick font guide:
       }
       
       themeResponse = await response.json();
-      console.log('Step 1: Theme data retrieved successfully');
+
+      // Parse and log the theme name
+      const themeText = themeResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (themeText) {
+        try {
+          const parsedTheme = JSON.parse(themeText);
+          console.log(`✓ Step 1 Complete: "${parsedTheme.theme_name}"`);
+          console.log(`  Font: ${parsedTheme.font_family} | Radius: ${parsedTheme.border_radius} | Shadow: ${parsedTheme.box_shadow}`);
+        } catch (e) {
+          console.log('✓ Step 1 Complete (JSON received)');
+        }
+      }
     } catch (apiError) {
       console.error('Error calling Step 1 (theme generation) API:', apiError);
       const errorMessage = apiError.message || apiError.toString();
@@ -330,10 +330,13 @@ Quick font guide:
         
         const themeDataFromStep1 = JSON.parse(themeText);
         const imagePrompt = themeDataFromStep1.image_prompt;
-        
+
         if (imagePrompt && imagePrompt.trim().length > 0) {
-          console.log(`Step 2: Calling gemini-2.5-flash-image with prompt: "${imagePrompt.substring(0, 100)}..."`);
-          
+          console.log('\n┌─ STEP 2: Background Image Generation ───────────────────────────┐');
+          console.log('│ Model: gemini-2.5-flash-image                                    │');
+          console.log(`│ Prompt: ${imagePrompt.substring(0, 55).padEnd(55)}│`);
+          console.log('└──────────────────────────────────────────────────────────────────┘');
+
           const imageGenResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: {
@@ -354,83 +357,43 @@ Quick font guide:
           
           if (!imageGenResponse.ok) {
             const errorData = await imageGenResponse.text();
-            console.error('Step 2 Image Generation Error:', imageGenResponse.status, errorData);
-            // Don't fail the whole request, just log and continue without image
-            console.log('Continuing without background image due to generation error');
+            console.log(`✗ Step 2 Failed: ${imageGenResponse.status}`);
+            console.log('  → Continuing with color-only theme\n');
           } else {
             imageResponse = await imageGenResponse.json();
-            console.log('Step 2: Background image generated successfully');
-            
+
             // Merge the image parts into the theme response
             const imageParts = imageResponse.candidates?.[0]?.content?.parts || [];
             const imagePart = imageParts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
-            
+
             if (imagePart) {
               // Add the image to the theme response
               if (!apiResponse.candidates[0].content.parts) {
                 apiResponse.candidates[0].content.parts = [];
               }
               apiResponse.candidates[0].content.parts.push(imagePart);
-              console.log('Step 2: Image part added to response');
+              const imageSize = Math.round(imagePart.inlineData.data.length / 1024);
+              console.log(`✓ Step 2 Complete: Image generated (${imageSize}KB)\n`);
+            } else {
+              console.log('✗ Step 2: No image in response\n');
             }
           }
         } else {
-          console.log('Step 2: No image prompt provided, skipping image generation');
+          console.log('→ Step 2: Skipped (no image prompt provided)\n');
         }
       } catch (imageError) {
-        console.error('Error in Step 2 (image generation):', imageError);
-        // Continue without image rather than failing the whole request
-        console.log('Continuing without background image due to error');
+        console.log(`✗ Step 2 Error: ${imageError.message}`);
+        console.log('  → Continuing with color-only theme\n');
       }
     } else {
-      console.log('Step 2: Skipped (color-only theme requested)');
+      console.log('→ Step 2: Skipped (color-only theme requested)\n');
     }
 
-    // Log the full response for debugging
-    console.log('FULL GEMINI RESPONSE (from REST API):');
-    console.log(JSON.stringify(apiResponse, null, 4));
-
-    // Adapt the rest of the parsing logic to use apiResponse directly (instead of response = result.response)
-    // The rest of the code remains the same, but replace 'response' with 'apiResponse' where needed
-    // Check raw response format
-    const candidatesCount = apiResponse.candidates?.length || 0;
+    // Check response format (condensed logging)
     const hasContent = apiResponse.candidates?.[0]?.content != null;
     const hasText = hasContent && apiResponse.candidates[0].content.parts?.some(p => p.text);
     const hasImage = hasContent && apiResponse.candidates[0].content.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
     const finishReason = apiResponse.candidates?.[0]?.finishReason || 'unknown';
-    
-    console.log(`Response structure: candidates=${candidatesCount}, hasContent=${hasContent}, hasText=${hasText}, hasImage=${hasImage}, finishReason=${finishReason}`);
-    
-    // If there's text, try to log a sample
-    if (hasText) {
-      const textPart = apiResponse.candidates[0].content.parts.find(p => p.text);
-      if (textPart) {
-        // Log a small sample of the text content
-        const sampleText = textPart.text.substring(0, 200);
-        console.log('Sample text from response:', sampleText + '...');
-        
-        // Check for JSON pattern
-        const jsonMatch = textPart.text.match(/\{[\s\S]*\}/);
-        console.log('Contains JSON object:', jsonMatch ? 'YES' : 'NO');
-        
-        if (jsonMatch) {
-          try {
-            const testParse = JSON.parse(jsonMatch[0]);
-            console.log('JSON parse test succeeded, contains keys:', Object.keys(testParse).join(', '));
-          } catch (e) {
-            console.log('JSON parse test failed:', e.message);
-          }
-        }
-      }
-    }
-    
-    // Log if an image was generated
-    if (hasImage) {
-      const imagePart = apiResponse.candidates[0].content.parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
-      console.log('Image found in response:', imagePart.inlineData.mimeType, 'data length:', imagePart.inlineData.data.length);
-    }
-    
-    console.log('-----------------------------------------------------------------');
     
     // Extract the theme data and image from the response
     try {
@@ -468,14 +431,11 @@ Quick font guide:
         for (const part of parts) {
           // With structured output, text part will be valid JSON
           if (part.text) {
-            console.log('Found text part in response with structured output');
             try {
               // Structured output guarantees valid JSON matching our schema
               themeData = JSON.parse(part.text);
-              console.log('Successfully parsed theme data:', themeData.theme_name);
             } catch (e) {
-              console.error('Unexpected JSON parsing error with structured output:', e.message);
-              console.log('Text content:', part.text.substring(0, 200));
+              console.error('✗ JSON parsing error:', e.message);
               // Continue to try other parts
             }
           }
@@ -485,7 +445,6 @@ Quick font guide:
               mimeType: part.inlineData.mimeType,
               data: part.inlineData.data // This is base64 encoded image data
             };
-            console.log('Successfully parsed background image of type:', part.inlineData.mimeType);
           }
         }
       }
@@ -518,14 +477,12 @@ Quick font guide:
         // Convert preset names to actual CSS values
         themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
         themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
-        
-        // Log theme selections
-        console.log('Font selected:', themeData.font_family);
-        console.log('Border Radius:', themeData.border_radius, `(${themeData.border_radius_value})`);
-        console.log('Box Shadow:', themeData.box_shadow, `(${themeData.box_shadow_value.substring(0, 30)}...)`);
-        
-        console.log(`Successfully formatted response with theme "${themeData.theme_name}" and ${backgroundImage ? 'background image' : 'no background image'}`);
-        
+
+        // Final summary
+        console.log('─'.repeat(70));
+        console.log(`✓ Theme Complete: "${themeData.theme_name}" ${backgroundImage ? '+ Background Image' : '(Color Only)'}`);
+        console.log('─'.repeat(70) + '\n');
+
         const maxAttemptsReached = attempt >= 3 && !backgroundImage;  // Updated to match new max attempts
         
         return res.json({
