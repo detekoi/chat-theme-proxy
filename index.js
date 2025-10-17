@@ -169,8 +169,92 @@ app.post('/api/generate-theme', async (req, res) => {
       console.log(`Retry attempt ${attempt}: Using temperature=${temperature}, topK=${topK}, topP=${topP}`);
     }
     
-    // Construct the main prompt text
-    let mainPromptText = `${prompt_prefix}Create a visually appealing Twitch chat theme for: "${prompt}".\n\nFirst, for the overall theme, consider the feeling and style of "${prompt}".\n\nNext, create the JSON part for the theme settings:\n{\n  "theme_name": "[A creative theme name inspired by '${prompt}']",\n  "background_color": "[rgba color with opacity - e.g., rgba(12, 20, 69, 0.85)]",\n  "border_color": "[hex color - e.g., #ff6bcb]",\n  "text_color": "[hex color for chat text - e.g., #efeff1]",\n  "username_color": "[hex color for usernames - e.g., #9147ff]",\n  "font_family": "[One of: ${fontOptions}]",\n  "border_radius": "[One of: None, Subtle, Rounded, Pill]",\n  "box_shadow": "[One of: None, Soft, Simple 3D, Intense 3D, Sharp]",\n  "description": "[A brief description capturing the essence of a '${prompt}' inspired theme]"\n}\n\n${themeType === 'image' ? `\nThen, design a **subtle and seamless background pattern image** that complements the *mood and color palette* of a theme inspired by "${prompt}".\n**Important instructions for the background pattern image:**\n- **DO NOT include any literal words or text from the prompt "${prompt}" in the image itself.**\n- The pattern should be decorative and visually appealing.\n- It must tile seamlessly without any visible borders or edges.\n- Use low contrast to ensure text displayed over it remains readable.\n- Keep the design simple with minimal elements.\n- Use a maximum of 2-3 colors that harmonize with the overall theme.\n- Focus on creating a texture or repeating pattern that represents the theme.\n- Ensure it is borderless and edge-free for perfect tiling.\n- Avoid any elements that could create visible seams when tiled.\nExample ideas for patterns: subtle gradients, soft textures, repeating shapes, or thematic elements. The pattern should evoke the *feeling* of "${prompt}" (e.g., for "futuristic", maybe tech-inspired patterns; for "cozy", maybe warm textures or simple shapes) without directly showing it.\n` : `\nCreate a JSON object with the theme settings.\n- Make sure to use a nice rgba color for the background_color.\n- DO NOT generate any image, only create a color-based theme.`}\n\nQuick font guide:\n- Modern/tech: Tektur, Consolas, System UI\n- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond\n- Gaming/retro: Press Start 2P, Jacquard, Impact\n- Readable: Atkinson Hyperlegible, Verdana\n- Classic: EB Garamond, Georgia, Times New Roman\n\nBorder radius guide:\n- None (0px): Sharp or pixelated designs\n- Subtle (8px): Slightly rounded corners\n- Rounded (16px): Moderately rounded corners\n- Pill (24px): Playful or cute/soft designs\n\nBox shadow guide:\n- None: Flat designs\n- Soft: Subtle 360 spread\n- Simple 3D: Light layering effect\n- Intense 3D: Strong depth effect\n- Sharp: Pixel-art style\n\nYour response should include both the JSON theme data and, if requested, the background pattern image.\n`;
+    // Define schema with image_prompt field for two-step generation
+    const themeSchemaWithPrompt = {
+      type: "object",
+      properties: {
+        theme_name: {
+          type: "string",
+          description: "A creative theme name inspired by the prompt"
+        },
+        background_color: {
+          type: "string",
+          description: "RGBA color with opacity (e.g., rgba(12, 20, 69, 0.85))"
+        },
+        border_color: {
+          type: "string",
+          description: "Hex color for borders (e.g., #ff6bcb)"
+        },
+        text_color: {
+          type: "string",
+          description: "Hex color for chat text (e.g., #efeff1)"
+        },
+        username_color: {
+          type: "string",
+          description: "Hex color for usernames (e.g., #9147ff)"
+        },
+        font_family: {
+          type: "string",
+          description: "Font family name from the available fonts list",
+          enum: availableFonts.map(f => f.name)
+        },
+        border_radius: {
+          type: "string",
+          description: "Border radius preset",
+          enum: ["None", "Subtle", "Rounded", "Pill"]
+        },
+        box_shadow: {
+          type: "string",
+          description: "Box shadow preset",
+          enum: ["None", "Soft", "Simple 3D", "Intense 3D", "Sharp"]
+        },
+        description: {
+          type: "string",
+          description: "Brief description capturing the essence of the theme"
+        },
+        image_prompt: {
+          type: "string",
+          description: "A detailed prompt for generating a subtle, seamless, tileable background pattern image that matches the theme's mood and colors"
+        }
+      },
+      required: ["theme_name", "background_color", "border_color", "text_color", "username_color", "font_family", "border_radius", "box_shadow", "description", "image_prompt"]
+    };
+    
+    // Construct the main prompt text for theme generation
+    let mainPromptText = `Create a visually appealing Twitch chat theme for: "${prompt}".
+
+Consider the feeling and style of "${prompt}" and provide:
+1. Complete theme settings (colors, fonts, styles)
+2. A detailed image prompt for generating a background pattern
+
+Theme guidelines:
+- Choose colors that capture the essence of "${prompt}"
+- Select an appropriate font from: ${fontOptions}
+- Pick border radius: None (sharp/pixelated), Subtle (slightly rounded), Rounded (moderately rounded), or Pill (very rounded)
+- Pick box shadow: None (flat), Soft (subtle), Simple 3D (light depth), Intense 3D (strong depth), or Sharp (pixel-art)
+
+${themeType === 'image' ? `
+Image prompt guidelines:
+- Describe a **subtle and seamless background pattern** that complements the theme's mood and colors
+- The pattern should tile seamlessly without visible borders or edges
+- Use low contrast to ensure text readability
+- Keep the design simple with minimal elements
+- Use 2-3 colors that harmonize with the theme
+- Focus on textures or repeating patterns that evoke the feeling of "${prompt}"
+- DO NOT include literal text or words in the pattern
+- Ensure it's borderless and edge-free for perfect tiling
+
+Example: For "cyberpunk" → "A subtle seamless tileable pattern of dark blue circuit board lines with occasional pink neon accents, low contrast, minimal design, no text"
+` : `
+Image prompt should be empty or describe a simple solid color (no pattern needed for color-only themes).
+`}
+
+Quick font guide:
+- Modern/tech: Tektur, Consolas, System UI
+- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond
+- Gaming/retro: Press Start 2P, Jacquard, Impact
+- Readable: Atkinson Hyperlegible, Verdana
+- Classic: EB Garamond, Georgia, Times New Roman`;
 
     const sdkContents = [
       {
@@ -181,12 +265,12 @@ app.post('/api/generate-theme', async (req, res) => {
 
     const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-    // Use REST API directly (SDK has geographic routing issues)
-    let apiResponse;
+    // STEP 1: Use gemini-2.5-flash-lite with structured output to get theme JSON + image prompt
+    let themeResponse;
     try {
-      console.log('Using REST API directly with gemini-2.0-flash-preview-image-generation model');
+      console.log('Step 1: Calling gemini-2.5-flash-lite with structured output for theme data...');
       
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -197,35 +281,109 @@ app.post('/api/generate-theme', async (req, res) => {
             parts: [{ text: mainPromptText }]
           }],
           generationConfig: {
-            responseModalities: themeType === 'image' ? ["TEXT", "IMAGE"] : ["TEXT"]
+            temperature: temperature,
+            topK: topK,
+            topP: topP,
+            responseSchema: themeSchemaWithPrompt,
+            responseMimeType: "application/json"
           }
         })
       });
       
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('REST API Error:', response.status, errorData);
-        throw new Error(`REST API Error: ${response.status} - ${errorData}`);
+        console.error('Step 1 REST API Error:', response.status, errorData);
+        throw new Error(`Step 1 REST API Error: ${response.status} - ${errorData}`);
       }
       
-      apiResponse = await response.json();
-      console.log('REST API call successful');
+      themeResponse = await response.json();
+      console.log('Step 1: Theme data retrieved successfully');
     } catch (apiError) {
-      console.error('Error calling REST API:', apiError);
+      console.error('Error calling Step 1 (theme generation) API:', apiError);
       const errorMessage = apiError.message || apiError.toString();
-      // Extract more details if the error is an object with a nested error/response
       let errorDetails = 'No additional details';
       if (typeof apiError === 'object' && apiError !== null) {
         if (apiError.cause) errorDetails = JSON.stringify(apiError.cause);
         else if (apiError.response && apiError.response.data) errorDetails = JSON.stringify(apiError.response.data);
-        else errorDetails = JSON.stringify(apiError); // Fallback to stringifying the error itself
+        else errorDetails = JSON.stringify(apiError);
       }
-      console.error('API Error details:', errorDetails);
+      console.error('Step 1 API Error details:', errorDetails);
       return res.status(500).json({
-        error: 'Failed to call Gemini API',
+        error: 'Failed to generate theme data',
         details: errorMessage,
-        apiErrorDetails: errorDetails
+        apiErrorDetails: errorDetails,
+        step: 'theme_generation'
       });
+    }
+    
+    // STEP 2: Use gemini-2.5-flash-image to generate the background image (if needed)
+    let imageResponse = null;
+    let apiResponse = themeResponse; // For backwards compatibility with existing parsing code
+    
+    if (themeType === 'image') {
+      try {
+        // Extract the theme data from Step 1
+        const themeText = themeResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!themeText) {
+          throw new Error('No theme data found in Step 1 response');
+        }
+        
+        const themeDataFromStep1 = JSON.parse(themeText);
+        const imagePrompt = themeDataFromStep1.image_prompt;
+        
+        if (imagePrompt && imagePrompt.trim().length > 0) {
+          console.log(`Step 2: Calling gemini-2.5-flash-image with prompt: "${imagePrompt.substring(0, 100)}..."`);
+          
+          const imageGenResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Client': 'genai-js/1.0.0'
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: imagePrompt }]
+              }],
+              generationConfig: {
+                temperature: 0.8,  // Slightly creative for image generation
+                topK: 40,
+                topP: 0.95
+              }
+            })
+          });
+          
+          if (!imageGenResponse.ok) {
+            const errorData = await imageGenResponse.text();
+            console.error('Step 2 Image Generation Error:', imageGenResponse.status, errorData);
+            // Don't fail the whole request, just log and continue without image
+            console.log('Continuing without background image due to generation error');
+          } else {
+            imageResponse = await imageGenResponse.json();
+            console.log('Step 2: Background image generated successfully');
+            
+            // Merge the image parts into the theme response
+            const imageParts = imageResponse.candidates?.[0]?.content?.parts || [];
+            const imagePart = imageParts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+            
+            if (imagePart) {
+              // Add the image to the theme response
+              if (!apiResponse.candidates[0].content.parts) {
+                apiResponse.candidates[0].content.parts = [];
+              }
+              apiResponse.candidates[0].content.parts.push(imagePart);
+              console.log('Step 2: Image part added to response');
+            }
+          }
+        } else {
+          console.log('Step 2: No image prompt provided, skipping image generation');
+        }
+      } catch (imageError) {
+        console.error('Error in Step 2 (image generation):', imageError);
+        // Continue without image rather than failing the whole request
+        console.log('Continuing without background image due to error');
+      }
+    } else {
+      console.log('Step 2: Skipped (color-only theme requested)');
     }
 
     // Log the full response for debugging
@@ -286,41 +444,16 @@ app.post('/api/generate-theme', async (req, res) => {
           apiResponse.candidates[0].finishReason === 'RECITATION') {
         console.log('Received RECITATION finish reason. Retrying with different parameters...');
         
-        if (attempt < 5) {
-          // Try again with completely different parameters for next attempt
+        if (attempt < 3) {  // Reduced from 5 to 3 since structured output makes retries less likely
           const nextAttempt = attempt + 1;
+          console.log(`RECITATION error - retrying attempt ${nextAttempt}`);
           
-          // Use a more drastic change in parameters when we get a RECITATION error
-          if (nextAttempt === 1) {
-            // First retry after RECITATION should use very different params
-            temperature = 0.3; // Much lower temperature
-            topK = 60;  // Much higher topK
-            topP = 0.7; // Lower topP
-          } else {
-            // Second retry after RECITATION
-            temperature = 0.7; // Try going higher instead
-            topK = 10;  // Much lower topK
-            topP = 0.95; // Higher topP
-          }
-          
-          console.log(`RECITATION error - next attempt will use: temp=${temperature}, topK=${topK}, topP=${topP}, seed=${randomSeed + 12345}`);
-          
-          // Try again with different parameters, but include any previous theme data if we have it
-          const responseData = {
+          return res.status(202).json({
             retry: true,
-            message: 'Gemini is a bit fussy! Adjusting to get things working...',
+            message: 'Adjusting parameters to avoid RECITATION error...',
             attempt: nextAttempt
-          };
-          
-          // Check if we had a successful previous attempt and include that theme
-          if (attempt > 0 && req.body.previousThemeData) {
-            responseData.themeData = req.body.previousThemeData;
-            console.log('Included previous theme data with retry response');
-          }
-          
-          return res.status(202).json(responseData);
+          });
         } else {
-          // After max retries, return a meaningful error
           return res.status(400).json({
             error: 'Model returned RECITATION error repeatedly',
             maxAttemptsReached: true
@@ -328,106 +461,25 @@ app.post('/api/generate-theme', async (req, res) => {
         }
       }
       
-      // Process each part of the response
+      // Process each part of the response - SIMPLIFIED with structured output
       if (apiResponse.candidates && apiResponse.candidates.length > 0) {
         const parts = apiResponse.candidates[0]?.content?.parts || [];
         
-        let extractedThemeData = null;
-        
         for (const part of parts) {
-          // If it's text, try to extract JSON
+          // With structured output, text part will be valid JSON
           if (part.text) {
-            console.log('Found text part in response');
-            
-            // Try different patterns to extract JSON
-            // Look for patterns that look like JSON objects
-            const jsonPatterns = [
-              // Standard full JSON pattern
-              /\{[\s\S]*?\}/g,
-              // Relaxed pattern to find partial JSON
-              /\{\s*"theme_name"[\s\S]*?\}/g,
-              // Another approach looking for the full structure
-              /\{\s*"theme_name"[\s\S]*"description"[\s\S]*?\}/g
-            ];
-            
-            let foundValidJson = false;
-            
-            // Try each pattern in turn
-            for (const pattern of jsonPatterns) {
-              if (foundValidJson) break;
-              
-              const matches = part.text.match(pattern);
-              if (matches && matches.length > 0) {
-                // Try each match, starting with the longest (most likely to be complete)
-                const sortedMatches = [...matches].sort((a, b) => b.length - a.length);
-                
-                for (const match of sortedMatches) {
-                  try {
-                    // Clean up the JSON string before parsing
-                    let jsonStr = match;
-                    
-                    // Try to fix common JSON issues
-                    // Replace non-standard quotes
-                    jsonStr = jsonStr.replace(/[""]/g, '"');
-                    // Fix missing quotes around keys
-                    jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
-                    // Replace unescaped backslashes
-                    jsonStr = jsonStr.replace(/([^\\])\\([^"\\\/bfnrtu])/g, '$1\\\\$2');
-                    
-                    // Parse the JSON
-                    extractedThemeData = JSON.parse(jsonStr);
-                    
-                    // Validate that it has the expected fields
-                    if (extractedThemeData.theme_name && 
-                        extractedThemeData.background_color && 
-                        extractedThemeData.text_color) {
-                      
-                      themeData = extractedThemeData; // Set this immediately to ensure we have it even for retries
-                      console.log('Successfully parsed theme data:', themeData.theme_name);
-                      foundValidJson = true;
-                      break;
-                    } else {
-                      console.log('Found parseable JSON but missing required fields, continuing search');
-                    }
-                  } catch (e) {
-                    console.log(`JSON parsing failed for match: ${e.message}`);
-                    // Continue to the next match
-                  }
-                }
-              }
+            console.log('Found text part in response with structured output');
+            try {
+              // Structured output guarantees valid JSON matching our schema
+              themeData = JSON.parse(part.text);
+              console.log('Successfully parsed theme data:', themeData.theme_name);
+            } catch (e) {
+              console.error('Unexpected JSON parsing error with structured output:', e.message);
+              console.log('Text content:', part.text.substring(0, 200));
+              // Continue to try other parts
             }
-            
-            // If all pattern matching failed, try one last approach
-            if (!foundValidJson) {
-              try {
-                // Try to find just the start and end of a JSON object
-                const startIdx = part.text.indexOf('{');
-                const endIdx = part.text.lastIndexOf('}');
-                
-                if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-                  let jsonStr = part.text.substring(startIdx, endIdx + 1);
-                  
-                  // Apply the same cleanup as above
-                  jsonStr = jsonStr.replace(/[""]/g, '"');
-                  jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
-                  jsonStr = jsonStr.replace(/([^\\])\\([^"\\\/bfnrtu])/g, '$1\\\\$2');
-                  
-                  themeData = JSON.parse(jsonStr);
-                  console.log('Successfully parsed theme data using brute force method:', themeData.theme_name);
-                }
-              } catch (e3) {
-                console.error('All JSON parsing methods failed:', e3.message);
-                // All parsing attempts failed
-              }
-            }
-            
-            // Log the failure if we couldn't find valid JSON
-            if (!themeData) {
-              console.warn('No valid JSON object found in text part');
-              console.log('Text content sample:', part.text.substring(0, 200) + '...');
-            }
-          } // Close if part.text
-          // If it's an image, extract the data
+          }
+          // Extract image data if present
           else if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
             backgroundImage = {
               mimeType: part.inlineData.mimeType,
@@ -438,89 +490,43 @@ app.post('/api/generate-theme', async (req, res) => {
         }
       }
       if (themeData) {
+        // Structured output guarantees valid JSON, so validation is simpler
+        // Note: enum constraints in schema already ensure valid font_family, border_radius, and box_shadow
+        
         // Check if we have a background image when themeType is 'image' and this isn't a high-attempt retry
-        if (themeType === 'image' && !backgroundImage && attempt < 5) {
-          console.log(`No background image was generated. Retrying with increased temperature... (attempt ${attempt + 1})`);
+        if (themeType === 'image' && !backgroundImage && attempt < 3) {  // Reduced from 5 to 3
+          console.log(`No background image was generated. Retrying... (attempt ${attempt + 1})`);
           
           // Add CSS values to theme data for consistent experience between attempts
           themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
           themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
           
-          // Debug output for the theme data 
-          console.log('Theme data for retry:', JSON.stringify({
-            theme_name: themeData.theme_name,
-            containsValues: !!themeData.border_radius_value
-          }));
-          
-          // Retry with modified parameters to encourage image generation but also return the theme data
-          // This allows clients to show intermediate themes while waiting for one with an image
           return res.status(202).json({
             retry: true,
-            message: `No background image was generated. Retrying (attempt ${attempt + 1}/5)...`,
+            message: `No background image was generated. Retrying (attempt ${attempt + 1}/3)...`,
             attempt: attempt + 1,
-            themeData: themeData, // Include the theme data so client can use it while retrying
-            includesThemeData: true // Extra flag to make it super obvious we have theme data
+            themeData: themeData,
+            includesThemeData: true
           });
         } else if (themeType === 'image' && !backgroundImage) {
-          // After all retries, proceed with the theme data without an image
-          console.log('No background image was generated after multiple attempts. Proceeding with theme data only.');
+          console.log('No background image was generated after retries. Proceeding with theme data only.');
         } else if (themeType === 'color' && backgroundImage) {
           console.log('Background image was generated even though themeType is color. Ignoring the image.');
-          backgroundImage = null; // Ignore the image for color-only themes
-        }
-        
-        // Validate that the font exists in our list
-        const fontEntry = availableFonts.find(font => font.name === themeData.font_family);
-        
-        if (!fontEntry) {
-          // If font doesn't exist, default to System UI
-          themeData.font_family = 'System UI';
-          console.warn(`Invalid font '${themeData.font_family}' replaced with 'System UI'`);
-        }
-        
-        // Validate border radius and box shadow values
-        if (!Object.keys(borderRadiusPresets).includes(themeData.border_radius)) {
-          // Default to Subtle if invalid or missing
-          themeData.border_radius = 'Subtle';
-          console.warn(`Invalid border radius '${themeData.border_radius}' replaced with 'Subtle'`);
-        }
-        
-        if (!Object.keys(boxShadowPresets).includes(themeData.box_shadow)) {
-          // Default to Soft if invalid or missing
-          themeData.box_shadow = 'Soft';
-          console.warn(`Invalid box shadow '${themeData.box_shadow}' replaced with 'Soft'`);
+          backgroundImage = null;
         }
         
         // Convert preset names to actual CSS values
         themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
         themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
         
-        // Update the theme data in the original response to keep it consistent
-        for (const part of apiResponse.candidates[0].content.parts) {
-          if (part.text) {
-            const jsonMatch = part.text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              try {
-                const updatedJsonText = part.text.replace(jsonMatch[0], JSON.stringify(themeData, null, 2));
-                part.text = updatedJsonText;
-              } catch (e) {
-                console.error('Error updating theme data in response JSON:', e);
-              }
-            }
-          }
-        }
-        
         // Log theme selections
         console.log('Font selected:', themeData.font_family);
         console.log('Border Radius:', themeData.border_radius, `(${themeData.border_radius_value})`);
-        console.log('Box Shadow:', themeData.box_shadow, `(${themeData.box_shadow_value.substring(0, 30)}...)`); // Log a snippet of the longer box shadow values
+        console.log('Box Shadow:', themeData.box_shadow, `(${themeData.box_shadow_value.substring(0, 30)}...)`);
         
-        // Return properly structured response with themeData
         console.log(`Successfully formatted response with theme "${themeData.theme_name}" and ${backgroundImage ? 'background image' : 'no background image'}`);
         
-        // If we've made the maximum number of attempts but still don't have an image,
-        // add that information to the response so clients know not to wait for an image
-        const maxAttemptsReached = attempt >= 5 && !backgroundImage;
+        const maxAttemptsReached = attempt >= 3 && !backgroundImage;  // Updated to match new max attempts
         
         return res.json({
           themeData: themeData,
@@ -530,13 +536,12 @@ app.post('/api/generate-theme', async (req, res) => {
         });
       }
       
-      // If we can't extract valid JSON but we have an existing theme and less than max retries,
-      // retry with different params
-      if (attempt < 5) {
-        console.log(`No valid theme data found. Unleashing creative force... (attempt ${attempt + 1})`);
+      // If we can't extract valid JSON (unlikely with structured output), retry
+      if (attempt < 3) {  // Reduced from 5 to 3
+        console.log(`No valid theme data found. Retrying... (attempt ${attempt + 1})`);
         return res.status(202).json({
           retry: true,
-          message: `No valid theme data received. Retrying (attempt ${attempt + 1}/5)...`,
+          message: `No valid theme data received. Retrying (attempt ${attempt + 1}/3)...`,
           attempt: attempt + 1
         });
       }
@@ -545,8 +550,6 @@ app.post('/api/generate-theme', async (req, res) => {
       return res.status(400).json({ 
         error: 'Could not parse theme data from Gemini response',
         responseData: {
-          status: apiResponse.status,
-          statusText: apiResponse.statusText,
           finishReason: finishReason,
           hasContent: hasContent,
           hasText: hasText,
@@ -606,40 +609,63 @@ app.get('/api/debug', (req, res) => {
   });
 });
 
-// Test endpoint to verify Gemini API key and basic functionality
+// Test endpoint to verify Gemini API key and two-step generation
 app.get('/api/test-gemini', async (req, res) => {
   try {
-    if (!GoogleGenAI || !Modality) {
-      return res.status(503).json({ error: 'SDK not loaded' });
-    }
-
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    
-    // Test with the image generation model using SDK
-    const testResponse = await genAI.models.generateContent({
-      model: "gemini-2.0-flash-preview-image-generation",
-      contents: "Create a simple red circle image",
-      config: {
-        responseModalities: [Modality.TEXT, Modality.IMAGE]
-      }
+    // Test Step 1: gemini-2.5-flash-lite with structured output
+    const step1Response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: "Create a simple test theme with a red circle image prompt" }]
+        }],
+        generationConfig: {
+          responseSchema: {
+            type: "object",
+            properties: {
+              test_field: { type: "string" }
+            },
+            required: ["test_field"]
+          },
+          responseMimeType: "application/json"
+        }
+      })
     });
 
-    const hasText = testResponse.response?.candidates?.[0]?.content?.parts?.some(p => p.text);
-    const hasImage = testResponse.response?.candidates?.[0]?.content?.parts?.some(p => p.inlineData);
+    if (!step1Response.ok) {
+      const errorData = await step1Response.text();
+      return res.status(500).json({
+        error: 'Step 1 (structured output) test failed',
+        details: errorData,
+        status: step1Response.status,
+        apiKeyConfigured: !!GEMINI_API_KEY
+      });
+    }
+
+    const step1Data = await step1Response.json();
+    const step1HasText = step1Data.candidates?.[0]?.content?.parts?.some(p => p.text);
 
     res.json({
       success: true,
       apiKeyConfigured: true,
-      sdkLoaded: true,
-      hasText,
-      hasImage,
-      partsCount: testResponse.response?.candidates?.[0]?.content?.parts?.length || 0,
-      apiMethod: 'SDK',
-      testResponse: testResponse.response?.candidates?.[0]?.content?.parts?.[0]?.text?.substring(0, 100) || 'No text response'
+      approach: 'Two-step generation',
+      step1: {
+        model: 'gemini-2.5-flash-lite',
+        hasText: step1HasText,
+        structuredOutput: true
+      },
+      step2: {
+        model: 'gemini-2.5-flash-image',
+        description: 'Used for image generation based on Step 1 prompt'
+      },
+      apiMethod: 'REST'
     });
 
   } catch (error) {
@@ -647,61 +673,128 @@ app.get('/api/test-gemini', async (req, res) => {
       error: 'Gemini API test failed',
       details: error.message,
       apiKeyConfigured: !!GEMINI_API_KEY,
-      sdkLoaded: !!(GoogleGenAI && Modality),
-      apiMethod: 'SDK'
+      apiMethod: 'REST'
     });
   }
 });
 
-// Test endpoint specifically for image generation model using REST API
+// Test endpoint for two-step generation process
 app.get('/api/test-image-model', async (req, res) => {
   try {
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    // Test with REST API directly
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_API_KEY}`, {
+    // Define a simple test schema with image_prompt
+    const testSchema = {
+      type: "object",
+      properties: {
+        shape: { type: "string", description: "The shape that was created" },
+        color: { type: "string", description: "The color of the shape" },
+        image_prompt: { type: "string", description: "A prompt to generate the image" }
+      },
+      required: ["shape", "color", "image_prompt"]
+    };
+
+    // STEP 1: Test gemini-2.5-flash-lite with structured output
+    console.log('Testing Step 1: gemini-2.5-flash-lite with structured output');
+    const step1Response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         contents: [{
-          parts: [{ text: "Create a simple blue square image" }]
+          parts: [{ text: "Create a blue square. Provide JSON with shape, color, and an image_prompt for generating the image." }]
         }],
         generationConfig: {
-          responseModalities: ["TEXT", "IMAGE"]
+          responseSchema: testSchema,
+          responseMimeType: "application/json"
         }
       })
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
+    if (!step1Response.ok) {
+      const errorData = await step1Response.text();
       return res.status(500).json({
-        error: 'REST API test failed',
+        error: 'Step 1 (structured output) test failed',
         details: errorData,
-        status: response.status,
-        apiKeyConfigured: !!GEMINI_API_KEY
+        status: step1Response.status,
+        apiKeyConfigured: !!GEMINI_API_KEY,
+        step: 1
       });
     }
 
-    const testResponse = await response.json();
-    const hasText = testResponse.candidates?.[0]?.content?.parts?.some(p => p.text);
-    const hasImage = testResponse.candidates?.[0]?.content?.parts?.some(p => p.inlineData);
+    const step1Data = await step1Response.json();
+    const step1HasText = step1Data.candidates?.[0]?.content?.parts?.some(p => p.text);
+    
+    let parsedJson = null;
+    let imagePrompt = null;
+    if (step1HasText) {
+      const textPart = step1Data.candidates[0].content.parts.find(p => p.text);
+      try {
+        parsedJson = JSON.parse(textPart.text);
+        imagePrompt = parsedJson.image_prompt;
+      } catch (e) {
+        console.error('JSON parse error in test:', e);
+      }
+    }
+
+    // STEP 2: Test gemini-2.5-flash-image with the image prompt
+    let step2Success = false;
+    let step2HasImage = false;
+    
+    if (imagePrompt) {
+      console.log(`Testing Step 2: gemini-2.5-flash-image with prompt: "${imagePrompt}"`);
+      try {
+        const step2Response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: imagePrompt }]
+            }],
+            generationConfig: {
+              temperature: 0.8,
+              topK: 40,
+              topP: 0.95
+            }
+          })
+        });
+
+        if (step2Response.ok) {
+          const step2Data = await step2Response.json();
+          step2HasImage = step2Data.candidates?.[0]?.content?.parts?.some(p => p.inlineData);
+          step2Success = true;
+        }
+      } catch (e) {
+        console.error('Step 2 test error:', e);
+      }
+    }
 
     res.json({
       success: true,
-      modelWorking: true,
-      hasText,
-      hasImage,
-      partsCount: testResponse.candidates?.[0]?.content?.parts?.length || 0,
+      approach: 'Two-step generation',
+      step1: {
+        model: 'gemini-2.5-flash-lite',
+        structuredOutputWorking: !!parsedJson,
+        hasText: step1HasText,
+        parsedJson: parsedJson
+      },
+      step2: {
+        model: 'gemini-2.5-flash-image',
+        success: step2Success,
+        hasImage: step2HasImage,
+        imagePromptUsed: imagePrompt?.substring(0, 100) || null
+      },
       apiMethod: 'REST'
     });
 
   } catch (error) {
     res.status(500).json({
-      error: 'Image generation model test failed',
+      error: 'Two-step generation test failed',
       details: error.message,
       apiKeyConfigured: !!GEMINI_API_KEY,
       apiMethod: 'REST'

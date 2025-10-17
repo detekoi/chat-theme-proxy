@@ -138,7 +138,7 @@ curl -X POST https://theme-proxy-361545143046.us-west2.run.app/api/generate-them
 
 ### Overview
 
-The theme generator uses Gemini 2.0 Flash Preview Image Generation (`gemini-2.0-flash-preview-image-generation`) to create subtle tiled background patterns that match the theme generated from the user's prompt. The service uses the Gemini REST API directly for optimal compatibility.
+The theme generator uses Gemini 2.5 Flash Image (`gemini-2.5-flash-image`) with structured output to create subtle tiled background patterns that match the theme generated from the user's prompt. The service uses the Gemini REST API directly for optimal compatibility and reliability.
 
 ### Technical Details
 
@@ -242,16 +242,48 @@ If you experience performance issues with background images:
 
 ## Implementation Notes
 
-### Gemini API Configuration
+### Two-Step Generation Process
 
-The service uses the Gemini REST API directly with the following configuration:
-- Model: `gemini-2.0-flash-preview-image-generation`
-- Response modalities: `["TEXT", "IMAGE"]`
-- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/`
+The service uses a **two-step approach** combining two Gemini models:
+
+#### Step 1: Theme Data Generation (gemini-2.5-flash-lite)
+- **Model**: `gemini-2.5-flash-lite-preview-09-2025`
+- **Purpose**: Generate theme JSON data + image prompt
+- **Features**: 
+  - Structured output with JSON schema validation
+  - Response MIME Type: `application/json`
+  - Guaranteed consistent format
+  - Includes `image_prompt` field for Step 2
+
+#### Step 2: Image Generation (gemini-2.5-flash-image) 
+- **Model**: `gemini-2.5-flash-image`
+- **Purpose**: Generate background pattern image
+- **Input**: Uses `image_prompt` from Step 1
+- **Features**:
+  - Specialized image generation model
+  - Creates seamless tileable patterns
+  - Only called when `themeType === 'image'`
+
+### Why Two Steps?
+
+The `gemini-2.5-flash-image` model doesn't support structured output (JSON mode). By separating concerns:
+1. **Step 1** uses `flash-lite` for reliable JSON generation with schema validation
+2. **Step 2** uses `flash-image` for high-quality image generation
+3. Result: Best of both worlds - reliable data + great images
+
+### Structured Output Benefits
+
+The structured output in Step 1 provides:
+- **Guaranteed JSON format**: No complex parsing or retry logic needed
+- **Schema validation**: Enum constraints ensure valid font families, border radius, and box shadow values
+- **Reduced retries**: From 5 attempts to 3, as JSON parsing is now reliable
+- **Consistent responses**: All fields are validated against the defined schema
+- **Image prompt generation**: Model creates optimal prompt for Step 2
 
 ### Error Handling
 
 The service includes robust error handling and retry logic:
+- Reduced retry attempts (3 instead of 5) due to structured output reliability
 - Automatic retries for transient failures
 - Graceful degradation when image generation fails
 - Detailed error messages for debugging

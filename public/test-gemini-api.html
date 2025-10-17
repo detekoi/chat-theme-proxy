@@ -76,9 +76,14 @@
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
+            background-color: #0e0e10;
+            color: #efeff1;
         }
         h1 {
             color: #9147ff;
+        }
+        h2, h3 {
+            color: #efeff1;
         }
         .form-group {
             margin-bottom: 20px;
@@ -87,13 +92,20 @@
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
+            color: #efeff1;
         }
         input[type="text"] {
             width: 100%;
             padding: 10px;
             font-size: 16px;
-            border: 1px solid #ccc;
+            border: 1px solid #3a3a3d;
             border-radius: 4px;
+            background-color: #18181b;
+            color: #efeff1;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #9147ff;
         }
         button {
             background-color: #9147ff;
@@ -109,7 +121,7 @@
             background-color: #772ce8;
         }
         button:disabled {
-            background-color: #ccc;
+            background-color: #3a3a3d;
             cursor: not-allowed;
         }
         #loading {
@@ -121,9 +133,9 @@
             display: none;
             margin-top: 10px;
             padding: 8px 12px;
-            background-color: #5e43bd22;
-            border-left: 4px solid #5e43bd;
-            color: #5e43bd;
+            background-color: #1f1925;
+            border-left: 4px solid #9147ff;
+            color: #bf94ff;
             font-style: italic;
         }
         pre {
@@ -156,6 +168,7 @@
             border: 2px solid #9147ff;
             border-radius: 8px;
             padding: 20px;
+            background-color: #18181b;
         }
         .preview h3 {
             margin-top: 0;
@@ -165,14 +178,14 @@
         #theme-carousel {
             display: none;
             margin-top: 30px;
-            border: 1px solid #5e43bd;
+            border: 1px solid #9147ff;
             border-radius: 8px;
             padding: 15px;
-            background-color: #f8f9fa;
+            background-color: #18181b;
         }
         #carousel-title {
             margin-top: 0;
-            color: #5e43bd;
+            color: #bf94ff;
         }
         #theme-cards {
             display: flex;
@@ -270,7 +283,7 @@
         /* Opacity value display */
         .opacity-value {
             font-size: 0.85em;
-            color: #555;
+            color: #adadb8;
             margin-top: 3px;
             text-align: center;
             font-weight: bold;
@@ -334,8 +347,27 @@
         /* Help text for opacity slider */
         .opacity-help-text {
             font-size: 0.8em;
-            color: #666;
+            color: #adadb8;
             margin-top: 5px;
+        }
+
+        /* Inline code styling */
+        code {
+            background-color: #18181b;
+            color: #bf94ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            accent-color: #9147ff;
+        }
+
+        /* Paragraph text */
+        p {
+            color: #efeff1;
         }
     </style>
 </head>
@@ -343,9 +375,15 @@
     <h1>Test Theme Generator API</h1>
     <p>This page lets you test the Theme Generator API by creating a theme based on a prompt.</p>
     
-    <!-- Removed API key field since we're using a proxy service now -->
-    <div>
-        <p><strong>Note:</strong> This now uses a proxy service that handles the API key for you.</p>
+    <!-- Updated to reflect two-step generation approach -->
+    <div style="background-color: #1f3a1f; border: 1px solid #4caf50; border-radius: 4px; padding: 10px; margin-bottom: 20px;">
+        <p><strong>✨ Two-Step Generation with Gemini Models!</strong></p>
+        <ul style="margin: 5px 0; padding-left: 20px;">
+            <li><strong>Step 1:</strong> gemini-2.5-flash-lite with structured output for theme JSON</li>
+            <li><strong>Step 2:</strong> gemini-2.5-flash-image for background pattern generation</li>
+            <li><strong>Benefits:</strong> Reliable JSON + High-quality images</li>
+            <li><strong>Reduced Retries:</strong> From 5 to 3 attempts due to improved reliability</li>
+        </ul>
     </div>
     
     <div class="form-group">
@@ -360,8 +398,19 @@
         </label>
     </div>
     
+    <div style="background-color: #3a2f1f; border: 1px solid #bf9a4c; border-radius: 4px; padding: 10px; margin-bottom: 20px;">
+        <p><strong>🧪 Testing Tips:</strong></p>
+        <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9em;">
+            <li><strong>"Test Structured Output"</strong> - Verifies the new JSON schema validation is working</li>
+            <li><strong>Try different prompts:</strong> "cyberpunk", "cozy cabin", "space theme", "medieval fantasy"</li>
+            <li><strong>Check the carousel:</strong> All generated themes are saved and can be clicked to preview</li>
+            <li><strong>Opacity sliders:</strong> Adjust background color and image opacity independently</li>
+        </ul>
+    </div>
+    
     <div>
         <button id="generateBtn">Generate Theme</button>
+        <button id="testStructuredOutputBtn" style="margin-left: 10px; background-color: #28a745;">Test Structured Output</button>
         <span id="loading">Generating...</span>
     </div>
     <div id="retryInfo">Retrying to get background image... (this may take a few seconds)</div>
@@ -380,6 +429,16 @@
     </div>
     
     <h2>API Response:</h2>
+    <div style="background-color: #1f2a3a; border: 1px solid #4c7bad; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+        <p><strong>🔧 Technical Details:</strong></p>
+        <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9em;">
+            <li><strong>Step 1 Model:</strong> gemini-2.5-flash-lite-preview-09-2025</li>
+            <li><strong>Step 1 Purpose:</strong> Generate theme JSON + image prompt with structured output</li>
+            <li><strong>Step 2 Model:</strong> gemini-2.5-flash-image</li>
+            <li><strong>Step 2 Purpose:</strong> Generate background pattern from AI-created prompt</li>
+            <li><strong>Max Retries:</strong> 3 attempts (reduced from 5 due to improved reliability)</li>
+        </ul>
+    </div>
     <pre id="output">Results will appear here...</pre>
     
     <script>
@@ -730,9 +789,9 @@
                         const shouldGenerateImage = document.getElementById('generateImageCheckbox').checked;
                         const retryReason = shouldGenerateImage ? 'background image generation' : 'theme generation';
                         
-                        outputElem.textContent = `Retrying (attempt ${attempt})... Waiting for ${retryReason}.`;
+                        outputElem.textContent = `Retrying (attempt ${attempt}/3)... Waiting for ${retryReason}.`;
                         document.getElementById('retryInfo').style.display = 'block';
-                        document.getElementById('retryInfo').textContent = `Retry attempt ${attempt}: ${shouldGenerateImage ? 'Trying to get a background image' : 'Trying to generate a better theme'}. This may take a few seconds...`;
+                        document.getElementById('retryInfo').textContent = `Retry attempt ${attempt}/3: ${shouldGenerateImage ? 'Trying to get a background image' : 'Trying to generate a better theme'}. With structured output, this should be faster!`;
                     } else {
                         document.getElementById('retryInfo').style.display = 'none';
                     }
@@ -760,11 +819,11 @@
                     // Display the raw response
                     outputElem.textContent = JSON.stringify(data, null, 2);
                     
-                    // Check if we need to retry for image generation
+                    // Check if we need to retry for image generation (reduced from 5 to 3 attempts)
                     if (response.status === 202 && data.retry) {
                         retrying = true;
                         attempt = data.attempt || attempt + 1;
-                        console.log(`Retrying theme generation, attempt ${attempt}`);
+                        console.log(`Retrying theme generation, attempt ${attempt}/3`);
                         
                         // Add the current theme to the carousel even during retries
                         if (data.themeData) {
@@ -784,7 +843,7 @@
                         
                         const shouldGenerateImage = document.getElementById('generateImageCheckbox').checked;
                         if (shouldGenerateImage) {
-                            document.getElementById('retryInfo').textContent = 'Background image generation was unsuccessful after multiple attempts. Proceeding with theme data only.';
+                            document.getElementById('retryInfo').textContent = 'Background image generation was unsuccessful after 3 attempts. Proceeding with theme data only.';
                         } else {
                             document.getElementById('retryInfo').textContent = 'Generated color-only theme as requested (no background image).';
                         }
@@ -809,7 +868,7 @@
                     
                     // Break out of the loop since we have valid data
                     break;
-                } while (retrying && attempt < 3); // Limit to 3 attempts
+                } while (retrying && attempt < 3); // Structured output reduces need for retries
                 
                 if (!finalResponse.ok) {
                     throw new Error(`API Error: ${finalData.error?.message || 'Unknown error'}`);
@@ -1113,8 +1172,8 @@
                 console.log('Using font:', themeData.font_family);
                 console.log('Font stack:', fontMap[themeData.font_family] || themeData.font_family);
                 
-                // Add success message
-                outputElem.innerHTML = `<span class="success">Successfully generated theme!</span>\n\n${outputElem.textContent}`;
+                // Add success message with two-step generation info
+                outputElem.innerHTML = `<span class="success">Successfully generated theme using two-step generation (Flash-Lite + Flash-Image)!</span>\n\n${outputElem.textContent}`;
                 
                 // Background is now applied automatically
                 
@@ -1128,8 +1187,52 @@
             }
         }
         
+        // Test structured output functionality
+        async function testStructuredOutput() {
+            const outputElem = document.getElementById('output');
+            const loadingElem = document.getElementById('loading');
+            const testBtn = document.getElementById('testStructuredOutputBtn');
+            
+            // Show loading state
+            loadingElem.style.display = 'inline';
+            testBtn.disabled = true;
+            outputElem.textContent = 'Testing structured output...';
+            
+            try {
+                // Test the image model endpoint with structured output
+                const response = await fetch('/api/test-image-model');
+                const data = await response.json();
+                
+                if (data.success) {
+                    outputElem.innerHTML = `<span class="success">✅ Two-Step Generation Test Passed!</span>\n\n` +
+                        `<strong>Approach:</strong> ${data.approach}\n\n` +
+                        `<strong>Step 1 (${data.step1.model}):</strong>\n` +
+                        `  - Structured Output Working: ${data.step1.structuredOutputWorking ? '✅ Yes' : '❌ No'}\n` +
+                        `  - Has Text: ${data.step1.hasText ? '✅ Yes' : '❌ No'}\n` +
+                        `  - Parsed JSON: ${JSON.stringify(data.step1.parsedJson, null, 2)}\n\n` +
+                        `<strong>Step 2 (${data.step2.model}):</strong>\n` +
+                        `  - Success: ${data.step2.success ? '✅ Yes' : '❌ No'}\n` +
+                        `  - Has Image: ${data.step2.hasImage ? '✅ Yes' : '❌ No'}\n` +
+                        `  - Image Prompt Used: ${data.step2.imagePromptUsed || 'N/A'}\n\n` +
+                        `<strong>Full Response:</strong>\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    throw new Error(data.error || 'Test failed');
+                }
+            } catch (error) {
+                console.error('Error testing structured output:', error);
+                outputElem.innerHTML = `<span class="error">❌ Structured Output Test Failed: ${error.message}</span>\n\n${outputElem.textContent}`;
+            } finally {
+                // Hide loading indicator
+                loadingElem.style.display = 'none';
+                testBtn.disabled = false;
+            }
+        }
+        
         // Add event listener for the Generate button
         document.getElementById('generateBtn').addEventListener('click', generateTheme);
+        
+        // Add event listener for the Test Structured Output button
+        document.getElementById('testStructuredOutputBtn').addEventListener('click', testStructuredOutput);
 
         // Make sure the carousel is visible after page load if we already have themes
         window.addEventListener('load', () => {
