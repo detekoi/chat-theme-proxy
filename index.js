@@ -107,13 +107,7 @@ app.post('/api/generate-theme', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     
-    console.log('\n' + '='.repeat(70));
-    console.log(`🎨 THEME GENERATION REQUEST`);
-    console.log('='.repeat(70));
-    console.log(`  Prompt: "${prompt}"`);
-    console.log(`  Type: ${themeType === 'image' ? '🖼️  with background image' : '🎨 color only'}`);
-    console.log(`  Attempt: ${attempt + 1}/3`);
-    console.log('='.repeat(70) + '\n');
+    console.log(`🎨 Theme Request: "${prompt}" | ${themeType === 'image' ? 'With Image' : 'Color Only'} | Attempt ${attempt + 1}/3`);
     
     // Generate list of available font names for the prompt
     const fontOptions = availableFonts.map(font => `'${font.name}'`).join(', ');
@@ -255,9 +249,7 @@ Quick font guide:
     // STEP 1: Use gemini-2.5-flash-lite with structured output to get theme JSON + image prompt
     let themeResponse;
     try {
-      console.log('┌─ STEP 1: Theme Data Generation ─────────────────────────────────┐');
-      console.log('│ Model: gemini-2.5-flash-lite (structured output)                │');
-      console.log('└──────────────────────────────────────────────────────────────────┘');
+      console.log('📝 Step 1: Generating theme data (gemini-2.5-flash-lite)...');
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -292,10 +284,9 @@ Quick font guide:
       if (themeText) {
         try {
           const parsedTheme = JSON.parse(themeText);
-          console.log(`✓ Step 1 Complete: "${parsedTheme.theme_name}"`);
-          console.log(`  Font: ${parsedTheme.font_family} | Radius: ${parsedTheme.border_radius} | Shadow: ${parsedTheme.box_shadow}`);
+          console.log(`✓ Step 1 Complete: "${parsedTheme.theme_name}" (${parsedTheme.font_family}, ${parsedTheme.border_radius}, ${parsedTheme.box_shadow})`);
         } catch (e) {
-          console.log('✓ Step 1 Complete (JSON received)');
+          console.log('✓ Step 1 Complete');
         }
       }
     } catch (apiError) {
@@ -332,10 +323,7 @@ Quick font guide:
         const imagePrompt = themeDataFromStep1.image_prompt;
 
         if (imagePrompt && imagePrompt.trim().length > 0) {
-          console.log('\n┌─ STEP 2: Background Image Generation ───────────────────────────┐');
-          console.log('│ Model: gemini-2.5-flash-image                                    │');
-          console.log(`│ Prompt: ${imagePrompt.substring(0, 55).padEnd(55)}│`);
-          console.log('└──────────────────────────────────────────────────────────────────┘');
+          console.log(`🖼️  Step 2: Generating background image (gemini-2.5-flash-image)...`);
 
           const imageGenResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
@@ -357,8 +345,7 @@ Quick font guide:
           
           if (!imageGenResponse.ok) {
             const errorData = await imageGenResponse.text();
-            console.log(`✗ Step 2 Failed: ${imageGenResponse.status}`);
-            console.log('  → Continuing with color-only theme\n');
+            console.log(`✗ Step 2 Failed (${imageGenResponse.status}) - Continuing with color-only theme`);
           } else {
             imageResponse = await imageGenResponse.json();
 
@@ -373,20 +360,19 @@ Quick font guide:
               }
               apiResponse.candidates[0].content.parts.push(imagePart);
               const imageSize = Math.round(imagePart.inlineData.data.length / 1024);
-              console.log(`✓ Step 2 Complete: Image generated (${imageSize}KB)\n`);
+              console.log(`✓ Step 2 Complete: Background image generated (${imageSize}KB)`);
             } else {
-              console.log('✗ Step 2: No image in response\n');
+              console.log('✗ Step 2: No image in response');
             }
           }
         } else {
-          console.log('→ Step 2: Skipped (no image prompt provided)\n');
+          console.log('→ Step 2: Skipped (no image prompt)');
         }
       } catch (imageError) {
-        console.log(`✗ Step 2 Error: ${imageError.message}`);
-        console.log('  → Continuing with color-only theme\n');
+        console.log(`✗ Step 2 Error: ${imageError.message} - Continuing with color-only theme`);
       }
     } else {
-      console.log('→ Step 2: Skipped (color-only theme requested)\n');
+      console.log('→ Step 2: Skipped (color-only theme)');
     }
 
     // Check response format (condensed logging)
@@ -479,9 +465,7 @@ Quick font guide:
         themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
 
         // Final summary
-        console.log('─'.repeat(70));
-        console.log(`✓ Theme Complete: "${themeData.theme_name}" ${backgroundImage ? '+ Background Image' : '(Color Only)'}`);
-        console.log('─'.repeat(70) + '\n');
+        console.log(`✅ Theme Complete: "${themeData.theme_name}" ${backgroundImage ? '+ Background Image' : '(Color Only)'}`);
 
         const maxAttemptsReached = attempt >= 3 && !backgroundImage;  // Updated to match new max attempts
         
