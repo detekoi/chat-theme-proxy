@@ -363,14 +363,15 @@ Quick font guide:
 
           if (!imageGenResponse.ok) {
             const errorData = await imageGenResponse.text();
-            console.log(`✗ Step 2 Failed (${imageGenResponse.status}) - Continuing with color-only theme`);
+            console.log(`✗ Step 2 Failed (${imageGenResponse.status}): ${errorData}`);
           } else {
             const runwareResponse = await imageGenResponse.json();
+            console.log('Runware Response:', JSON.stringify(runwareResponse).substring(0, 500));
 
             // Extract base64 image data from Runware response
-            // Runware returns an array of results
-            if (runwareResponse && runwareResponse.length > 0 && runwareResponse[0].imageBase64Data) {
-              const base64Data = runwareResponse[0].imageBase64Data;
+            // Runware returns {"data": [...]} format
+            if (runwareResponse && runwareResponse.data && runwareResponse.data.length > 0 && runwareResponse.data[0].imageBase64Data) {
+              const base64Data = runwareResponse.data[0].imageBase64Data;
 
               // Convert to Gemini-compatible format for existing parsing code
               const imagePart = {
@@ -389,6 +390,12 @@ Quick font guide:
               console.log(`✓ Step 2 Complete: Background image generated (${imageSize}KB)`);
             } else {
               console.log('✗ Step 2: No image in response');
+              console.log('Response structure:', JSON.stringify({
+                hasData: !!runwareResponse?.data,
+                dataIsArray: Array.isArray(runwareResponse?.data),
+                dataLength: runwareResponse?.data?.length,
+                firstItemKeys: runwareResponse?.data?.[0] ? Object.keys(runwareResponse.data[0]) : 'N/A'
+              }));
             }
           }
         } else if (!RUNWARE_API_KEY) {
