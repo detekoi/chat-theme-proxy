@@ -17,9 +17,10 @@ A simple Express server that acts as a proxy for the Gemini API, generating Twit
    ```
    npm install
    ```
-3. Create a `.env` file in the root directory with your Gemini API key:
+3. Create a `.env` file in the root directory with your API keys:
    ```
-   GEMINI_API_KEY=your_api_key_here
+   GEMINI_API_KEY=your_gemini_api_key_here
+   RUNWARE_API_KEY=your_runware_api_key_here
    ```
 
 ## Running the Server
@@ -56,7 +57,7 @@ docker build -t chat-theme-proxy .
 
 Run the container:
 ```
-docker run -p 8091:8091 -e GEMINI_API_KEY=your_api_key_here chat-theme-proxy
+docker run -p 8091:8091 -e GEMINI_API_KEY=your_gemini_api_key_here -e RUNWARE_API_KEY=your_runware_api_key_here chat-theme-proxy
 ```
 
 ## Google Cloud Platform Deployment
@@ -65,9 +66,10 @@ docker run -p 8091:8091 -e GEMINI_API_KEY=your_api_key_here chat-theme-proxy
 
 1. Install and set up the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
 
-2. Set your Gemini API key as an environment variable:
+2. Set your API keys as environment variables:
    ```bash
-   export GEMINI_API_KEY=your_api_key_here
+   export GEMINI_API_KEY=your_gemini_api_key_here
+   export RUNWARE_API_KEY=your_runware_api_key_here
    ```
 
 3. Run the deployment script:
@@ -90,6 +92,7 @@ For automated deployments via GitHub Actions, you'll need to set up the followin
    - `GCP_PROJECT_ID`: Your Google Cloud Project ID
    - `GCP_SA_KEY`: Your Google Cloud Service Account key JSON
    - `GEMINI_API_KEY`: Your Gemini API key
+   - `RUNWARE_API_KEY`: Your Runware API key
 
 The workflow will automatically:
 - Build and push the Docker image to Google Artifact Registry
@@ -138,7 +141,7 @@ curl -X POST https://theme-proxy-361545143046.us-west2.run.app/api/generate-them
 
 ### Overview
 
-The theme generator uses a **two-step approach** combining two Gemini models to create subtle tiled background patterns that match the theme generated from the user's prompt. The service uses the Gemini REST API directly for optimal compatibility and reliability.
+The theme generator uses a **two-step approach** combining Gemini for theme generation and Runware for image generation to create subtle tiled background patterns that match the theme generated from the user's prompt. This approach balances quality and cost-effectiveness.
 
 ### Technical Details
 
@@ -244,32 +247,33 @@ If you experience performance issues with background images:
 
 ### Two-Step Generation Process
 
-The service uses a **two-step approach** combining two Gemini models:
+The service uses a **two-step approach** combining Gemini and Runware APIs:
 
 #### Step 1: Theme Data Generation (gemini-2.5-flash-lite)
 - **Model**: `gemini-2.5-flash-lite`
 - **Purpose**: Generate theme JSON data + image prompt
-- **Features**: 
+- **Features**:
   - Structured output with JSON schema validation
   - Response MIME Type: `application/json`
   - Guaranteed consistent format
   - Includes `image_prompt` field for Step 2
 
-#### Step 2: Image Generation (gemini-2.5-flash-image) 
-- **Model**: `gemini-2.5-flash-image`
+#### Step 2: Image Generation (Runware FLUX.1 Schnell)
+- **Model**: `runware:100@1` (FLUX.1 Schnell)
 - **Purpose**: Generate background pattern image
 - **Input**: Uses `image_prompt` from Step 1
 - **Features**:
-  - Specialized image generation model
+  - Fast, cost-effective image generation
   - Creates seamless tileable patterns
+  - 512x512 PNG output via base64
   - Only called when `themeType === 'image'`
 
 ### Why Two Steps?
 
-The `gemini-2.5-flash-image` model doesn't support structured output (JSON mode). By separating concerns:
-1. **Step 1** uses `flash-lite` for reliable JSON generation with schema validation
-2. **Step 2** uses `flash-image` for high-quality image generation
-3. Result: Best of both worlds - reliable data + great images
+By separating theme generation from image generation:
+1. **Step 1** uses Gemini for reliable JSON generation with schema validation
+2. **Step 2** uses Runware FLUX.1 Schnell for cost-effective, fast image generation
+3. Result: Best of both worlds - reliable theme data + affordable high-quality images
 
 ### Structured Output Benefits
 

@@ -3,6 +3,7 @@ require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 
 // Declare variables that will be populated by the dynamic import
@@ -26,8 +27,9 @@ if (isDevelopment) {
 // Get port from environment variable
 const PORT = process.env.PORT || 8091;
 
-// Get API key from environment variable
+// Get API keys from environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const RUNWARE_API_KEY = process.env.RUNWARE_API_KEY;
 
 // Enable verbose logging
 const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true' || true;
@@ -316,10 +318,10 @@ Quick font guide:
       });
     }
     
-    // STEP 2: Use gemini-2.5-flash-image to generate the background image (if needed)
+    // STEP 2: Use Runware API (FLUX.1 Schnell) to generate the background image (if needed)
     let imageResponse = null;
     let apiResponse = themeResponse; // For backwards compatibility with existing parsing code
-    
+
     if (themeType === 'image') {
       try {
         // Extract the theme data from Step 1
@@ -327,53 +329,70 @@ Quick font guide:
         if (!themeText) {
           throw new Error('No theme data found in Step 1 response');
         }
-        
+
         const themeDataFromStep1 = JSON.parse(themeText);
         const imagePrompt = themeDataFromStep1.image_prompt;
 
-        if (imagePrompt && imagePrompt.trim().length > 0) {
-          console.log(`🖼️  Step 2: Generating background image (gemini-2.5-flash-image)...`);
+        if (imagePrompt && imagePrompt.trim().length > 0 && RUNWARE_API_KEY) {
+          console.log(`🖼️  Step 2: Generating background image (Runware FLUX.1 Schnell)...`);
 
-          const imageGenResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`, {
+          // Prepare Runware API request
+          const taskUUID = uuidv4();
+          const runwareRequest = [{
+            taskType: "imageInference",
+            taskUUID: taskUUID,
+            positivePrompt: imagePrompt,
+            width: 512,
+            height: 512,
+            model: "runware:100@1", // FLUX.1 Schnell
+            steps: 4, // Schnell is optimized for 1-4 steps
+            CFGScale: 3.0, // Lower CFG for subtle patterns
+            numberResults: 1,
+            outputType: "base64Data",
+            outputFormat: "PNG"
+          }];
+
+          const imageGenResponse = await fetch('https://api.runware.ai/v1', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Goog-Api-Client': 'genai-js/1.0.0'
+              'Authorization': `Bearer ${RUNWARE_API_KEY}`
             },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: imagePrompt }]
-              }],
-              generationConfig: {
-                temperature: 0.8,  // Slightly creative for image generation
-                topK: 40,
-                topP: 0.95
-              }
-            })
+            body: JSON.stringify(runwareRequest)
           });
-          
+
           if (!imageGenResponse.ok) {
             const errorData = await imageGenResponse.text();
             console.log(`✗ Step 2 Failed (${imageGenResponse.status}) - Continuing with color-only theme`);
           } else {
-            imageResponse = await imageGenResponse.json();
+            const runwareResponse = await imageGenResponse.json();
 
-            // Merge the image parts into the theme response
-            const imageParts = imageResponse.candidates?.[0]?.content?.parts || [];
-            const imagePart = imageParts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+            // Extract base64 image data from Runware response
+            // Runware returns an array of results
+            if (runwareResponse && runwareResponse.length > 0 && runwareResponse[0].imageBase64Data) {
+              const base64Data = runwareResponse[0].imageBase64Data;
 
-            if (imagePart) {
+              // Convert to Gemini-compatible format for existing parsing code
+              const imagePart = {
+                inlineData: {
+                  mimeType: 'image/png',
+                  data: base64Data
+                }
+              };
+
               // Add the image to the theme response
               if (!apiResponse.candidates[0].content.parts) {
                 apiResponse.candidates[0].content.parts = [];
               }
               apiResponse.candidates[0].content.parts.push(imagePart);
-              const imageSize = Math.round(imagePart.inlineData.data.length / 1024);
+              const imageSize = Math.round(base64Data.length / 1024);
               console.log(`✓ Step 2 Complete: Background image generated (${imageSize}KB)`);
             } else {
               console.log('✗ Step 2: No image in response');
             }
           }
+        } else if (!RUNWARE_API_KEY) {
+          console.log('→ Step 2: Skipped (RUNWARE_API_KEY not configured)');
         } else {
           console.log('→ Step 2: Skipped (no image prompt)');
         }
@@ -806,8 +825,12 @@ async function main() {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Gemini API Key Loaded: ${!!GEMINI_API_KEY}`);
+      console.log(`Runware API Key Loaded: ${!!RUNWARE_API_KEY}`);
       if (!GEMINI_API_KEY) {
         console.error("GEMINI_API_KEY is not set. The application will not be able to call the Gemini API.");
+      }
+      if (!RUNWARE_API_KEY) {
+        console.error("RUNWARE_API_KEY is not set. Image generation will not be available.");
       }
     });
 

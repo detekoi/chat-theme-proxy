@@ -28,7 +28,7 @@ gcloud run deploy theme-proxy \
   --region us-west2 \
   --platform managed \
   --allow-unauthenticated \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
+  --set-secrets GEMINI_API_KEY=gemini-api-key:latest,RUNWARE_API_KEY=RUNWARE_API_KEY:latest
 
 echo "Deployment completed successfully!"
 echo "Your application should be available soon at the URL shown above."
