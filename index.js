@@ -806,7 +806,7 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   if (isDevelopment) {
     // In development, serve the test page
-    res.sendFile(path.join(__dirname, 'public', 'test-gemini-api.html'));
+    res.sendFile(path.join(__dirname, 'public', 'themer-tester.html'));
   } else {
     // In production, just return a simple message
     res.status(200).send('Theme Generator API is running. Use /api/generate-theme endpoint for theme generation.');
