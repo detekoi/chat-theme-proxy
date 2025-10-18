@@ -401,7 +401,7 @@
     <div style="background-color: #3a2f1f; border: 1px solid #bf9a4c; border-radius: 4px; padding: 10px; margin-bottom: 20px;">
         <p><strong>🧪 Testing Tips:</strong></p>
         <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9em;">
-            <li><strong>"Test Structured Output"</strong> - Verifies the new JSON schema validation is working</li>
+            <li><strong>"Test with Your Prompt"</strong> - Tests structured output using your actual prompt (not hardcoded)</li>
             <li><strong>Try different prompts:</strong> "cyberpunk", "cozy cabin", "space theme", "medieval fantasy"</li>
             <li><strong>Check the carousel:</strong> All generated themes are saved and can be clicked to preview</li>
             <li><strong>Opacity sliders:</strong> Adjust background color and image opacity independently</li>
@@ -410,7 +410,7 @@
     
     <div>
         <button id="generateBtn">Generate Theme</button>
-        <button id="testStructuredOutputBtn" style="margin-left: 10px; background-color: #28a745;">Test Structured Output</button>
+        <button id="testStructuredOutputBtn" style="margin-left: 10px; background-color: #28a745;">Test with Your Prompt</button>
         <span id="loading">Generating...</span>
     </div>
     <div id="retryInfo">Retrying to get background image... (this may take a few seconds)</div>
@@ -1187,34 +1187,55 @@
             }
         }
         
-        // Test structured output functionality
+        // Test structured output functionality with user's prompt
         async function testStructuredOutput() {
+            const prompt = document.getElementById('prompt').value.trim();
             const outputElem = document.getElementById('output');
             const loadingElem = document.getElementById('loading');
             const testBtn = document.getElementById('testStructuredOutputBtn');
             
+            if (!prompt) {
+                outputElem.innerHTML = '<span class="error">Please enter a theme prompt first</span>';
+                return;
+            }
+            
             // Show loading state
             loadingElem.style.display = 'inline';
             testBtn.disabled = true;
-            outputElem.textContent = 'Testing structured output...';
+            outputElem.textContent = 'Testing structured output with your prompt...';
             
             try {
-                // Test the image model endpoint with structured output
-                const response = await fetch('/api/test-image-model');
+                // Get the checkbox state
+                const shouldGenerateImage = document.getElementById('generateImageCheckbox').checked;
+                
+                // Test the actual theme generation endpoint with structured output
+                const response = await fetch('/api/generate-theme', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        prompt,
+                        attempt: 0,
+                        themeType: shouldGenerateImage ? 'image' : 'color'
+                    })
+                });
+                
                 const data = await response.json();
                 
-                if (data.success) {
-                    outputElem.innerHTML = `<span class="success">✅ Two-Step Generation Test Passed!</span>\n\n` +
-                        `<strong>Approach:</strong> ${data.approach}\n\n` +
-                        `<strong>Step 1 (${data.step1.model}):</strong>\n` +
-                        `  - Structured Output Working: ${data.step1.structuredOutputWorking ? '✅ Yes' : '❌ No'}\n` +
-                        `  - Has Text: ${data.step1.hasText ? '✅ Yes' : '❌ No'}\n` +
-                        `  - Parsed JSON: ${JSON.stringify(data.step1.parsedJson, null, 2)}\n\n` +
-                        `<strong>Step 2 (${data.step2.model}):</strong>\n` +
-                        `  - Success: ${data.step2.success ? '✅ Yes' : '❌ No'}\n` +
-                        `  - Has Image: ${data.step2.hasImage ? '✅ Yes' : '❌ No'}\n` +
-                        `  - Image Prompt Used: ${data.step2.imagePromptUsed || 'N/A'}\n\n` +
-                        `<strong>Full Response:</strong>\n${JSON.stringify(data, null, 2)}`;
+                if (response.ok && data.themeData) {
+                    outputElem.innerHTML = `<span class="success">✅ Structured Output Test Passed!</span>\n\n` +
+                        `<strong>Your Prompt:</strong> "${prompt}"\n\n` +
+                        `<strong>Theme Type:</strong> ${shouldGenerateImage ? 'With Image' : 'Color Only'}\n\n` +
+                        `<strong>Generated Theme:</strong>\n` +
+                        `  - Name: ${data.themeData.theme_name}\n` +
+                        `  - Font: ${data.themeData.font_family}\n` +
+                        `  - Border Radius: ${data.themeData.border_radius}\n` +
+                        `  - Box Shadow: ${data.themeData.box_shadow}\n` +
+                        `  - Description: ${data.themeData.description}\n\n` +
+                        `${shouldGenerateImage ? `  - Image Prompt: ${data.themeData.image_prompt}\n` : ''}` +
+                        `${data.backgroundImage ? '  - Background Image: ✅ Generated\n' : '  - Background Image: ❌ Not generated\n'}` +
+                        `\n<strong>Full Response:</strong>\n${JSON.stringify(data, null, 2)}`;
                 } else {
                     throw new Error(data.error || 'Test failed');
                 }

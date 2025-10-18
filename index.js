@@ -150,7 +150,10 @@ app.post('/api/generate-theme', async (req, res) => {
       console.log(`Retry attempt ${attempt}: Using temperature=${temperature}, topK=${topK}, topP=${topP}`);
     }
     
-    // Define schema with image_prompt field for two-step generation
+    // Define schema - image_prompt is only required for image themes
+    const baseRequiredFields = ["theme_name", "background_color", "border_color", "text_color", "username_color", "font_family", "border_radius", "box_shadow", "description"];
+    const requiredFields = themeType === 'image' ? [...baseRequiredFields, "image_prompt"] : baseRequiredFields;
+    
     const themeSchemaWithPrompt = {
       type: "object",
       properties: {
@@ -195,10 +198,12 @@ app.post('/api/generate-theme', async (req, res) => {
         },
         image_prompt: {
           type: "string",
-          description: "A detailed prompt for generating a subtle, seamless, tileable background pattern image that matches the theme's mood and colors"
+          description: themeType === 'image' 
+            ? "A detailed prompt for generating a subtle, seamless, tileable background pattern image that matches the theme's mood and colors"
+            : "Not needed for color-only themes - can be empty or omitted"
         }
       },
-      required: ["theme_name", "background_color", "border_color", "text_color", "username_color", "font_family", "border_radius", "box_shadow", "description", "image_prompt"]
+      required: requiredFields
     };
     
     // Construct the main prompt text for theme generation
@@ -206,7 +211,7 @@ app.post('/api/generate-theme', async (req, res) => {
 
 Consider the feeling and style of "${prompt}" and provide:
 1. Complete theme settings (colors, fonts, styles)
-2. A detailed image prompt for generating a background pattern
+${themeType === 'image' ? '2. A detailed image prompt for generating a background pattern' : '2. No image prompt needed (color-only theme)'}
 
 Theme guidelines:
 - Choose colors that capture the essence of "${prompt}"
@@ -227,7 +232,11 @@ Image prompt guidelines:
 
 Example: For "cyberpunk" → "A subtle seamless tileable pattern of dark blue circuit board lines with occasional pink neon accents, low contrast, minimal design, no text"
 ` : `
-Image prompt should be empty or describe a simple solid color (no pattern needed for color-only themes).
+For color-only themes:
+- Focus on creating a cohesive color palette that captures the essence of "${prompt}"
+- Use solid background colors or gradients
+- No background pattern images will be generated
+- The image_prompt field can be empty or omitted
 `}
 
 Quick font guide:
