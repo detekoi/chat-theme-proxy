@@ -91,7 +91,7 @@ let availableFonts = [
   { name: 'Arial Black', value: "'Arial Black', Gadget, sans-serif", description: 'Extra bold version of Arial for strong emphasis.' }
 ];
 
-// Google Fonts API Key (check both spellings as per user feedback)
+// Google Fonts API Key
 const GOOGLE_FONTS_API_KEY = process.env.WEB_FONTS_API_KEY || process.env.WEP_FONTS_API_KEY;
 
 /**
