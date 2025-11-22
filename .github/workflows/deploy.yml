@@ -13,9 +13,6 @@ env:
   ARTIFACT_REGISTRY: us-central1-docker.pkg.dev
   REPO_NAME: chat-theme-repo # From deploy.sh
   IMAGE_NAME: theme-proxy # From deploy.sh
-  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-  RUNWARE_API_KEY: ${{ secrets.RUNWARE_API_KEY }}
-  WEB_FONTS_API_KEY: ${{ secrets.WEB_FONTS_API_KEY }}
 
 jobs:
   deploy:
@@ -53,5 +50,6 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
+            --clear-env-vars \
             --set-secrets GEMINI_API_KEY=gemini-api-key:latest,RUNWARE_API_KEY=RUNWARE_API_KEY:latest,WEB_FONTS_API_KEY=WEB_FONTS_API_KEY:latest \
             --quiet
