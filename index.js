@@ -55,41 +55,97 @@ const boxShadowPresets = {
 const getBorderRadiusValue = (preset) => borderRadiusPresets[preset] || borderRadiusPresets["None"];
 const getBoxShadowValue = (preset) => boxShadowPresets[preset] || boxShadowPresets["None"];
 
-// Define available fonts
-const availableFonts = [
-    // Custom fonts
-    { name: 'Atkinson Hyperlegible', value: "'Atkinson Hyperlegible', sans-serif", description: 'Designed for high legibility and reading clarity, especially at small sizes.', custom: true },
-    { name: 'Tektur', value: "'Tektur', sans-serif", description: 'Modern and slightly angular typeface with a technical/sci-fi aesthetic.', custom: true },
-    { name: 'MedievalSharp', value: "'MedievalSharp', cursive", description: 'Evokes a medieval/fantasy atmosphere with calligraphic details.', custom: true },
-    { name: 'Press Start 2P', value: "'Press Start 2P', cursive", description: 'Pixelated retro gaming font that resembles 8-bit text.', custom: true },
-    { name: 'Jacquard', value: "'Jacquard', monospace", description: 'Pixelated font with retro fantasy vibes based on Victorian needlepoint.', custom: true },
-    
-    // System fonts organized by categories
-    // Sans-serif fonts
-    { name: 'System UI', value: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
-    { name: 'Arial', value: "Arial, sans-serif", description: 'Classic sans-serif font with good readability.' },
-    { name: 'Helvetica', value: "Helvetica, Arial, sans-serif", description: 'Clean modern sans-serif font widely used in design.' },
-    { name: 'Verdana', value: "Verdana, Geneva, sans-serif", description: 'Sans-serif designed for good readability on screens.' },
-    { name: 'Tahoma', value: "Tahoma, Geneva, sans-serif", description: 'Compact sans-serif with good readability at small sizes.' },
-    { name: 'Trebuchet MS', value: "'Trebuchet MS', sans-serif", description: 'Humanist sans-serif with distinctive character shapes.' },
-    { name: 'Calibri', value: "Calibri, sans-serif", description: 'Modern sans-serif with rounded details and good readability.' },
-    
-    // Serif fonts
-    { name: 'Times New Roman', value: "'Times New Roman', Times, serif", description: 'Classic serif font with traditional letterforms.' },
-    { name: 'Georgia', value: "Georgia, serif", description: 'Elegant serif font designed for screen readability.' },
-    { name: 'Palatino', value: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", description: 'Elegant serif based on Renaissance letterforms.' },
-    { name: 'EB Garamond', value: "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif", description: 'Classical serif with elegant proportions.', custom: true },
-    
-    // Monospace fonts
-    { name: 'Courier New', value: "'Courier New', Courier, monospace", description: 'Classic monospaced font resembling typewriter text.' },
-    { name: 'Consolas', value: "'Consolas', monaco, monospace", description: 'Modern monospaced font designed for coding.' },
-    { name: 'Lucida Console', value: "'Lucida Console', Monaco, monospace", description: 'Clear monospace font with good readability.' },
-    
-    // Display/Decorative fonts that are commonly available
-    { name: 'Impact', value: "'Impact', Haettenschweiler, sans-serif", description: 'Bold condensed sans-serif font, often used for headlines.' },
-    { name: 'Comic Sans MS', value: "'Comic Sans MS', cursive", description: 'Casual script-like font with a friendly appearance.' },
-    { name: 'Arial Black', value: "'Arial Black', Gadget, sans-serif", description: 'Extra bold version of Arial for strong emphasis.' }
+// Define available fonts - Initial state with custom fonts
+let availableFonts = [
+  // Custom fonts (Always preserved)
+  { name: 'Atkinson Hyperlegible', value: "'Atkinson Hyperlegible', sans-serif", description: 'Designed for high legibility and reading clarity, especially at small sizes.', custom: true },
+  { name: 'Tektur', value: "'Tektur', sans-serif", description: 'Modern and slightly angular typeface with a technical/sci-fi aesthetic.', custom: true },
+  { name: 'MedievalSharp', value: "'MedievalSharp', cursive", description: 'Evokes a medieval/fantasy atmosphere with calligraphic details.', custom: true },
+  { name: 'Press Start 2P', value: "'Press Start 2P', cursive", description: 'Pixelated retro gaming font that resembles 8-bit text.', custom: true },
+  { name: 'Jacquard', value: "'Jacquard', monospace", description: 'Pixelated font with retro fantasy vibes based on Victorian needlepoint.', custom: true },
+
+  // System fonts organized by categories
+  // Sans-serif fonts
+  { name: 'System UI', value: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
+  { name: 'Arial', value: "Arial, sans-serif", description: 'Classic sans-serif font with good readability.' },
+  { name: 'Helvetica', value: "Helvetica, Arial, sans-serif", description: 'Clean modern sans-serif font widely used in design.' },
+  { name: 'Verdana', value: "Verdana, Geneva, sans-serif", description: 'Sans-serif designed for good readability on screens.' },
+  { name: 'Tahoma', value: "Tahoma, Geneva, sans-serif", description: 'Compact sans-serif with good readability at small sizes.' },
+  { name: 'Trebuchet MS', value: "'Trebuchet MS', sans-serif", description: 'Humanist sans-serif with distinctive character shapes.' },
+  { name: 'Calibri', value: "Calibri, sans-serif", description: 'Modern sans-serif with rounded details and good readability.' },
+
+  // Serif fonts
+  { name: 'Times New Roman', value: "'Times New Roman', Times, serif", description: 'Classic serif font with traditional letterforms.' },
+  { name: 'Georgia', value: "Georgia, serif", description: 'Elegant serif font designed for screen readability.' },
+  { name: 'Palatino', value: "'Palatino Linotype', 'Book Antiqua', Palatino, serif", description: 'Elegant serif based on Renaissance letterforms.' },
+  { name: 'EB Garamond', value: "'EB Garamond', Garamond, Baskerville, 'Baskerville Old Face', serif", description: 'Classical serif with elegant proportions.', custom: true },
+
+  // Monospace fonts
+  { name: 'Courier New', value: "'Courier New', Courier, monospace", description: 'Classic monospaced font resembling typewriter text.' },
+  { name: 'Consolas', value: "'Consolas', monaco, monospace", description: 'Modern monospaced font designed for coding.' },
+  { name: 'Lucida Console', value: "'Lucida Console', Monaco, monospace", description: 'Clear monospace font with good readability.' },
+
+  // Display/Decorative fonts that are commonly available
+  { name: 'Impact', value: "'Impact', Haettenschweiler, sans-serif", description: 'Bold condensed sans-serif font, often used for headlines.' },
+  { name: 'Comic Sans MS', value: "'Comic Sans MS', cursive", description: 'Casual script-like font with a friendly appearance.' },
+  { name: 'Arial Black', value: "'Arial Black', Gadget, sans-serif", description: 'Extra bold version of Arial for strong emphasis.' }
 ];
+
+// Google Fonts API Key (check both spellings as per user feedback)
+const GOOGLE_FONTS_API_KEY = process.env.WEB_FONTS_API_KEY || process.env.WEP_FONTS_API_KEY;
+
+/**
+ * Fetches top trending fonts from Google Fonts API and merges them with availableFonts.
+ */
+async function fetchGoogleFonts() {
+  if (!GOOGLE_FONTS_API_KEY) {
+    console.log('ℹ️ Google Fonts API Key not found. Using default font list.');
+    return;
+  }
+
+  try {
+    console.log('Fetching fonts from Google Fonts API...');
+    const response = await fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${GOOGLE_FONTS_API_KEY}&sort=popularity`);
+
+    if (!response.ok) {
+      throw new Error(`Google Fonts API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.items && Array.isArray(data.items)) {
+      // Take top 50 popular fonts to avoid overwhelming the context
+      const googleFonts = data.items.slice(0, 50).map(font => ({
+        name: font.family,
+        value: `'${font.family}', ${font.category}, sans-serif`, // Fallback to category
+        description: `Google Font: ${font.category}`,
+        isGoogleFont: true,
+        googleFontFamily: font.family,
+        category: font.category
+      }));
+
+      // Merge with existing fonts, ensuring no duplicates by name
+      // We keep our custom/system fonts as priority if names collide (unlikely for these specific ones)
+      const existingNames = new Set(availableFonts.map(f => f.name));
+
+      let addedCount = 0;
+      googleFonts.forEach(gf => {
+        if (!existingNames.has(gf.name)) {
+          availableFonts.push(gf);
+          existingNames.add(gf.name);
+          addedCount++;
+        }
+      });
+
+      console.log(`✅ Added ${addedCount} Google Fonts to the available list.`);
+    }
+  } catch (error) {
+    console.error('❌ Failed to fetch Google Fonts:', error.message);
+  }
+}
+
+// Initialize fonts on startup
+fetchGoogleFonts();
 
 // Add helper to generate a unique storage key for generated themes
 const generateThemeStorageKey = (themeId) => `generated-theme-image-${themeId}`;
@@ -104,16 +160,16 @@ app.post('/api/generate-theme', async (req, res) => {
 
   try {
     const { prompt, attempt = 0, forceJson = false, previousThemeData, themeType = 'image' } = req.body;
-    
+
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
-    
+
     console.log(`🎨 Theme Request: "${prompt}" | ${themeType === 'image' ? 'With Image' : 'Color Only'} | Attempt ${attempt + 1}/3`);
-    
+
     // Generate list of available font names for the prompt
     const fontOptions = availableFonts.map(font => `'${font.name}'`).join(', ');
-    
+
     // Adjust parameters based on attempt number to improve retry chances
     let temperature = 0.5;
     let topK = 20;
@@ -121,7 +177,7 @@ app.post('/api/generate-theme', async (req, res) => {
     let prompt_prefix = '';
     // Generate a random seed based on timestamp and attempt number to prevent RECITATION
     const randomSeed = Math.floor(Date.now() % 1000000) + (attempt * 10000);
-    
+
     // If we're retrying, adjust the params to avoid RECITATION or to encourage image generation
     if (attempt > 0) {
       // Use a strategy to avoid RECITATION errors with varied parameters on each attempt
@@ -130,16 +186,16 @@ app.post('/api/generate-theme', async (req, res) => {
         temperature = 1.1; // Experimental: temperature above 1
         topK = 32;
         topP = 0.92;
-        prompt_prefix = themeType === 'image' ? 
-          'Design a Twitch theme with both a small background pattern image AND a JSON object. ' : 
+        prompt_prefix = themeType === 'image' ?
+          'Design a Twitch theme with both a small background pattern image AND a JSON object. ' :
           'Design a Twitch theme with a solid background color (no image) AND a JSON object. ';
       } else if (attempt === 2) {
         // Second retry - completely different approach with lower temperature
         temperature = 0.4;
         topK = 40;
         topP = 0.85;
-        prompt_prefix = themeType === 'image' ? 
-          'Create a small pattern image and also a JSON theme. For the theme use this exact format: ' : 
+        prompt_prefix = themeType === 'image' ?
+          'Create a small pattern image and also a JSON theme. For the theme use this exact format: ' :
           'Create a JSON theme with a solid color background (no image). For the theme use this exact format: ';
       } else {
         // For higher attempts (3+), focus on getting valid JSON with different parameters
@@ -148,14 +204,14 @@ app.post('/api/generate-theme', async (req, res) => {
         topP = 0.8;
         prompt_prefix = 'RESPOND WITH ONLY A JSON OBJECT in this exact format: ';
       }
-      
+
       console.log(`Retry attempt ${attempt}: Using temperature=${temperature}, topK=${topK}, topP=${topP}`);
     }
-    
+
     // Define schema - image_prompt is only required for image themes
     const baseRequiredFields = ["theme_name", "background_color", "border_color", "text_color", "username_color", "font_family", "border_radius", "box_shadow", "description"];
     const requiredFields = themeType === 'image' ? [...baseRequiredFields, "image_prompt"] : baseRequiredFields;
-    
+
     const themeSchemaWithPrompt = {
       type: "object",
       properties: {
@@ -200,14 +256,14 @@ app.post('/api/generate-theme', async (req, res) => {
         },
         image_prompt: {
           type: "string",
-          description: themeType === 'image' 
+          description: themeType === 'image'
             ? "A detailed prompt for generating a subtle, seamless, tileable background pattern image that matches the theme's mood and colors"
             : "Not needed for color-only themes - can be empty or omitted"
         }
       },
       required: requiredFields
     };
-    
+
     // Construct the main prompt text for theme generation
     let mainPromptText = `Create a visually appealing Twitch chat theme for: "${prompt}".
 
@@ -251,7 +307,7 @@ Quick font guide:
     const sdkContents = [
       {
         role: "user",
-        parts: [ { text: mainPromptText } ]
+        parts: [{ text: mainPromptText }]
       }
     ];
 
@@ -281,13 +337,13 @@ Quick font guide:
           }
         })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.text();
         console.error('Step 1 REST API Error:', response.status, errorData);
         throw new Error(`Step 1 REST API Error: ${response.status} - ${errorData}`);
       }
-      
+
       themeResponse = await response.json();
 
       // Parse and log the theme name
@@ -317,7 +373,7 @@ Quick font guide:
         step: 'theme_generation'
       });
     }
-    
+
     // STEP 2: Use Runware API (FLUX.1 Schnell) to generate the background image (if needed)
     let imageResponse = null;
     let apiResponse = themeResponse; // For backwards compatibility with existing parsing code
@@ -415,23 +471,23 @@ Quick font guide:
     const hasText = hasContent && apiResponse.candidates[0].content.parts?.some(p => p.text);
     const hasImage = hasContent && apiResponse.candidates[0].content.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
     const finishReason = apiResponse.candidates?.[0]?.finishReason || 'unknown';
-    
+
     // Extract the theme data and image from the response
     try {
       // Initialize variables
       let themeData = null;
       let backgroundImage = null;
-      
+
       // Handle RECITATION finish reason specially
-      if (apiResponse.candidates && 
-          apiResponse.candidates.length > 0 && 
-          apiResponse.candidates[0].finishReason === 'RECITATION') {
+      if (apiResponse.candidates &&
+        apiResponse.candidates.length > 0 &&
+        apiResponse.candidates[0].finishReason === 'RECITATION') {
         console.log('Received RECITATION finish reason. Retrying with different parameters...');
-        
+
         if (attempt < 3) {  // Reduced from 5 to 3 since structured output makes retries less likely
           const nextAttempt = attempt + 1;
           console.log(`RECITATION error - retrying attempt ${nextAttempt}`);
-          
+
           return res.status(202).json({
             retry: true,
             message: 'Adjusting parameters to avoid RECITATION error...',
@@ -444,11 +500,11 @@ Quick font guide:
           });
         }
       }
-      
+
       // Process each part of the response - SIMPLIFIED with structured output
       if (apiResponse.candidates && apiResponse.candidates.length > 0) {
         const parts = apiResponse.candidates[0]?.content?.parts || [];
-        
+
         for (const part of parts) {
           // With structured output, text part will be valid JSON
           if (part.text) {
@@ -472,15 +528,15 @@ Quick font guide:
       if (themeData) {
         // Structured output guarantees valid JSON, so validation is simpler
         // Note: enum constraints in schema already ensure valid font_family, border_radius, and box_shadow
-        
+
         // Check if we have a background image when themeType is 'image' and this isn't a high-attempt retry
         if (themeType === 'image' && !backgroundImage && attempt < 3) {  // Reduced from 5 to 3
           console.log(`No background image was generated. Retrying... (attempt ${attempt + 1})`);
-          
+
           // Add CSS values to theme data for consistent experience between attempts
           themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
           themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
-          
+
           return res.status(202).json({
             retry: true,
             message: `No background image was generated. Retrying (attempt ${attempt + 1}/3)...`,
@@ -494,16 +550,24 @@ Quick font guide:
           console.log('Background image was generated even though themeType is color. Ignoring the image.');
           backgroundImage = null;
         }
-        
+
         // Convert preset names to actual CSS values
         themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
         themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
+
+        // Check if the selected font is a Google Font and add metadata
+        const selectedFont = availableFonts.find(f => f.name === themeData.font_family);
+        if (selectedFont && selectedFont.isGoogleFont) {
+          themeData.isGoogleFont = true;
+          themeData.googleFontFamily = selectedFont.googleFontFamily;
+          console.log(`🔤 Google Font selected: ${selectedFont.googleFontFamily}`);
+        }
 
         // Final summary
         console.log(`✅ Theme Complete: "${themeData.theme_name}" ${backgroundImage ? '+ Background Image' : '(Color Only)'}`);
 
         const maxAttemptsReached = attempt >= 3 && !backgroundImage;  // Updated to match new max attempts
-        
+
         return res.json({
           themeData: themeData,
           backgroundImage: backgroundImage,
@@ -511,7 +575,7 @@ Quick font guide:
           noImageAvailable: maxAttemptsReached
         });
       }
-      
+
       // If we can't extract valid JSON (unlikely with structured output), retry
       if (attempt < 3) {  // Reduced from 5 to 3
         console.log(`No valid theme data found. Retrying... (attempt ${attempt + 1})`);
@@ -521,9 +585,9 @@ Quick font guide:
           attempt: attempt + 1
         });
       }
-      
+
       // If we've already retried the max number of times, return an error
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Could not parse theme data from Gemini response',
         responseData: {
           finishReason: finishReason,
@@ -536,19 +600,19 @@ Quick font guide:
     } catch (jsonError) {
       console.error('Error parsing theme JSON or extracting image:', jsonError);
       // Return a properly formatted error response
-      res.status(400).json({ 
-        error: 'Error parsing theme data', 
+      res.status(400).json({
+        error: 'Error parsing theme data',
         details: jsonError.message,
         partialData: apiResponse.candidates?.[0]?.content?.parts?.[0]?.text?.substring(0, 200) || 'No text data found'
       });
     }
-    
+
   } catch (error) {
     console.error('Error in /api/generate-theme route:', error);
     // The error object from @google/genai might be different from AxiosError
     // Log its structure to adapt your error reporting
     console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to generate theme',
       details: error.message || (error.response?.data?.error?.message || 'Unknown SDK error')
     });
@@ -703,7 +767,7 @@ app.get('/api/test-image-model', async (req, res) => {
 
     const step1Data = await step1Response.json();
     const step1HasText = step1Data.candidates?.[0]?.content?.parts?.some(p => p.text);
-    
+
     let parsedJson = null;
     let imagePrompt = null;
     if (step1HasText) {
@@ -719,7 +783,7 @@ app.get('/api/test-image-model', async (req, res) => {
     // STEP 2: Test gemini-2.5-flash-image with the image prompt
     let step2Success = false;
     let step2HasImage = false;
-    
+
     if (imagePrompt) {
       console.log(`Testing Step 2: gemini-2.5-flash-image with prompt: "${imagePrompt}"`);
       try {
@@ -797,7 +861,7 @@ app.get('/api/test-theme', (req, res) => {
     },
     backgroundImage: null // No image in test mode
   };
-  
+
   // Add artificial delay to simulate API call
   setTimeout(() => {
     res.json(testTheme);

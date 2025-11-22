@@ -14,6 +14,7 @@ env:
   REPO_NAME: chat-theme-repo # From deploy.sh
   IMAGE_NAME: theme-proxy # From deploy.sh
   GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  WEB_FONTS_API_KEY: ${{ secrets.WEB_FONTS_API_KEY }}
 
 jobs:
   deploy:
