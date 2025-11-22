@@ -22,8 +22,9 @@ app.use(cors({
     // Allow trusted domains
     if (origin === 'https://detekoi.github.io') return callback(null, true);
     
-    // Allow local development (localhost/127.0.0.1 on any port)
-    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+    // Allow local development (localhost/127.0.0.1 on any port, http or https)
+    if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') || origin.startsWith('https://127.0.0.1:')) {
       return callback(null, true);
     }
 

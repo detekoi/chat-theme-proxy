@@ -53,5 +53,5 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars GEMINI_API_KEY=${{ env.GEMINI_API_KEY }},RUNWARE_API_KEY=${{ env.RUNWARE_API_KEY }},WEB_FONTS_API_KEY=${{ env.WEB_FONTS_API_KEY }} \
+            --set-secrets GEMINI_API_KEY=gemini-api-key:latest,RUNWARE_API_KEY=RUNWARE_API_KEY:latest,WEB_FONTS_API_KEY=WEB_FONTS_API_KEY:latest \
             --quiet
