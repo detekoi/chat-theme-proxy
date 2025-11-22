@@ -12,7 +12,28 @@ const testRoutes = require('./routes/testRoutes');
 let GoogleGenAI, Modality;
 
 const app = express();
-app.use(cors());
+
+// Configure CORS
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, or file://)
+    if (!origin || origin === 'null') return callback(null, true);
+    
+    // Allow trusted domains
+    if (origin === 'https://detekoi.github.io') return callback(null, true);
+    
+    // Allow local development (localhost/127.0.0.1 on any port)
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // Serve static files
