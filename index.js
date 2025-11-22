@@ -294,12 +294,7 @@ For color-only themes:
 - The image_prompt field can be empty or omitted
 `}
 
-Quick font guide:
-- Modern/tech: Tektur, Consolas, System UI
-- Fantasy/medieval: MedievalSharp, Jacquard, EB Garamond
-- Gaming/retro: Press Start 2P, Jacquard, Impact
-- Readable: Atkinson Hyperlegible, Verdana
-- Classic: EB Garamond, Georgia, Times New Roman`;
+`;
 
     const sdkContents = [
       {
