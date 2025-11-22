@@ -167,9 +167,6 @@ app.post('/api/generate-theme', async (req, res) => {
 
     console.log(`🎨 Theme Request: "${prompt}" | ${themeType === 'image' ? 'With Image' : 'Color Only'} | Attempt ${attempt + 1}/3`);
 
-    // Generate list of available font names for the prompt
-    const fontOptions = availableFonts.map(font => `'${font.name}'`).join(', ');
-
     // Adjust parameters based on attempt number to improve retry chances
     let temperature = 0.5;
     let topK = 20;
@@ -273,7 +270,7 @@ ${themeType === 'image' ? '2. A detailed image prompt for generating a backgroun
 
 Theme guidelines:
 - Choose colors that capture the essence of "${prompt}"
-- Select an appropriate font from: ${fontOptions}
+- Select an appropriate font from the available options
 - Pick border radius: None (sharp/pixelated), Subtle (slightly rounded), Rounded (moderately rounded), or Pill (very rounded)
 - Pick box shadow: None (flat), Soft (subtle), Simple 3D (light depth), Intense 3D (strong depth), or Sharp (pixel-art)
 
