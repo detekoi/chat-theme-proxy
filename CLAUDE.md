@@ -22,6 +22,6 @@ Structured output with JSON schema ensures reliable parsing. Reduced retries fro
 - Semantic HTTP status codes (400 client errors, 500 server errors)
 
 ## Deployment
-- Cloud Run URL: (Update after deployment)
+- Cloud Run URL: https://theme-proxy-361545143046.us-central1.run.app
 - GCP Project: chat-themer
 - Region: us-central1

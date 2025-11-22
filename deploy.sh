@@ -58,7 +58,7 @@ gcloud run deploy theme-proxy \
   --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest,RUNWARE_API_KEY=RUNWARE_API_KEY:latest || {
+  --set-secrets GEMINI_API_KEY=gemini-api-key:latest,RUNWARE_API_KEY=RUNWARE_API_KEY:latest,WEB_FONTS_API_KEY=WEB_FONTS_API_KEY:latest || {
   echo "Error: Failed to deploy to Cloud Run."
   exit 1
 }

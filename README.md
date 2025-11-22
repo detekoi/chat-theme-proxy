@@ -118,20 +118,21 @@ Before deploying, ensure you have:
 
 ## Live Deployment
 
-The service is currently deployed and available at the Cloud Run URL output by the deployment script.
+The service is currently deployed and available at:
+**https://theme-proxy-361545143046.us-central1.run.app**
 
 ### API Usage
 
 Generate a theme with background image:
 ```bash
-curl -X POST [YOUR_CLOUD_RUN_URL]/api/generate-theme \
+curl -X POST https://theme-proxy-361545143046.us-central1.run.app/api/generate-theme \
   -H "Content-Type: application/json" \
   -d '{"prompt":"cozy cabin","themeType":"image","attempt":0}'
 ```
 
 Generate a text-only theme:
 ```bash
-curl -X POST [YOUR_CLOUD_RUN_URL]/api/generate-theme \
+curl -X POST https://theme-proxy-361545143046.us-central1.run.app/api/generate-theme \
   -H "Content-Type: application/json" \
   -d '{"prompt":"cyberpunk neon","themeType":"color","attempt":0}'
 ```
