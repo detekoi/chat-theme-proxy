@@ -13,7 +13,7 @@ const RUNWARE_API_KEY = process.env.RUNWARE_API_KEY;
 const GOOGLE_FONTS_API_KEY = process.env.WEB_FONTS_API_KEY || process.env.WEP_FONTS_API_KEY;
 
 // Enable verbose logging
-const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true' || true;
+const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true';
 
 // Max retry attempts for theme generation
 const MAX_RETRY_ATTEMPTS = 3;
