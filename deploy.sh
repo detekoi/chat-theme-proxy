@@ -39,23 +39,23 @@ fi
 
 # Configure Docker to use the gcloud command-line tool as a credential helper
 echo "Configuring Docker to use gcloud as credential helper..."
-gcloud auth configure-docker us-west2-docker.pkg.dev || {
+gcloud auth configure-docker us-central1-docker.pkg.dev || {
   echo "Warning: Failed to configure Docker credential helper. Continuing anyway..."
 }
 
 # Build the container image
 echo "Building container image..."
-gcloud builds submit --project=$PROJECT_ID --tag us-west2-docker.pkg.dev/chat-themer/chat-theme-repo/theme-proxy:v1 || {
+gcloud builds submit --project=$PROJECT_ID --tag us-central1-docker.pkg.dev/chat-themer/chat-theme-repo/theme-proxy:v1 || {
   echo "Error: Failed to build container image."
   exit 1
 }
 
 # Deploy to Cloud Run
-echo "Deploying to Cloud Run in us-west2..."
+echo "Deploying to Cloud Run in us-central1..."
 gcloud run deploy theme-proxy \
   --project=$PROJECT_ID \
-  --image us-west2-docker.pkg.dev/chat-themer/chat-theme-repo/theme-proxy:v1 \
-  --region us-west2 \
+  --image us-central1-docker.pkg.dev/chat-themer/chat-theme-repo/theme-proxy:v1 \
+  --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
   --set-secrets GEMINI_API_KEY=gemini-api-key:latest,RUNWARE_API_KEY=RUNWARE_API_KEY:latest || {
