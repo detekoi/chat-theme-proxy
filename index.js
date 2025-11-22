@@ -271,8 +271,8 @@ ${themeType === 'image' ? '2. A detailed image prompt for generating a backgroun
 Theme guidelines:
 - Choose colors that capture the essence of "${prompt}"
 - Select an appropriate font from the available options
-- Pick border radius: None (sharp/pixelated), Subtle (slightly rounded), Rounded (moderately rounded), or Pill (very rounded)
-- Pick box shadow: None (flat), Soft (subtle), Simple 3D (light depth), Intense 3D (strong depth), or Sharp (pixel-art)
+- Pick an appropriate border radius
+- Pick an appropriate box shadow style
 
 ${themeType === 'image' ? `
 Image prompt guidelines:
