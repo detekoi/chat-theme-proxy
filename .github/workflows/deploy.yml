@@ -34,6 +34,7 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
+          version: 'latest'
           project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Configure Docker
@@ -50,6 +51,4 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            # --clear-env-vars \
-            --set-secrets GEMINI_API_KEY=gemini-api-key:latest,RUNWARE_API_KEY=RUNWARE_API_KEY:latest,WEB_FONTS_API_KEY=WEB_FONTS_API_KEY:latest \
             --quiet
