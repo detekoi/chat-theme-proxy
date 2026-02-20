@@ -254,7 +254,7 @@ function processThemeResponse(apiResponse, backgroundImage, themeType, attempt) 
       console.log(`No valid theme data found. Retrying... (attempt ${attempt + 1})`);
       return {
         retry: true,
-        message: `No valid theme data received. Retrying (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS})...`,
+        message: 'No valid theme data received. Retrying...',
         attempt: attempt + 1
       };
     }
@@ -278,7 +278,7 @@ function processThemeResponse(apiResponse, backgroundImage, themeType, attempt) 
 
     return {
       retry: true,
-      message: `No background image was generated. Retrying (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS})...`,
+      message: 'No background image was generated. Retrying...',
       attempt: attempt + 1,
       themeData: themeData,
       includesThemeData: true
