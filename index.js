@@ -1,6 +1,7 @@
 // index.js
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { PORT, isDevelopment } = require('./config/constants');
 const { fetchGoogleFonts } = require('./services/fontService');
@@ -18,13 +19,13 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, or file://)
     if (!origin || origin === 'null') return callback(null, true);
-    
+
     // Allow trusted domains
     if (origin === 'https://detekoi.github.io') return callback(null, true);
-    
+
     // Allow local development (localhost/127.0.0.1 on any port, http or https)
     if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:') ||
-        origin.startsWith('http://127.0.0.1:') || origin.startsWith('https://127.0.0.1:')) {
+      origin.startsWith('http://127.0.0.1:') || origin.startsWith('https://127.0.0.1:')) {
       return callback(null, true);
     }
 
@@ -36,6 +37,15 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));

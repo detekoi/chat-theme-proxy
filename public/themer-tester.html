@@ -443,6 +443,13 @@
     <pre id="output">Results will appear here...</pre>
     
     <script>
+        // Escape HTML special characters to prevent XSS
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(String(str)));
+            return div.innerHTML;
+        }
+
         // Store all generated themes
         const generatedThemes = [];
         
@@ -539,8 +546,8 @@
         // Function to apply a theme from the carousel
         function applyTheme(theme) {
             // Set the current theme details in the preview
-            document.getElementById('themeName').innerHTML = `<h2>${theme.name}</h2>`;
-            document.getElementById('themeDescription').innerHTML = `<p><em>${theme.description}</em></p>`;
+            document.getElementById('themeName').innerHTML = `<h2>${escapeHtml(theme.name)}</h2>`;
+            document.getElementById('themeDescription').innerHTML = `<p><em>${escapeHtml(theme.description)}</em></p>`;
             
             // Create the same preview HTML as the original function
             const themeColorsHtml = `
@@ -894,8 +901,8 @@
                 addThemeToCarousel(themeData, backgroundImage);
                 
                 // Show the preview
-                document.getElementById('themeName').innerHTML = `<h2>${themeData.theme_name}</h2>`;
-                document.getElementById('themeDescription').innerHTML = `<p><em>${themeData.description}</em></p>`;
+                document.getElementById('themeName').innerHTML = `<h2>${escapeHtml(themeData.theme_name)}</h2>`;
+                document.getElementById('themeDescription').innerHTML = `<p><em>${escapeHtml(themeData.description)}</em></p>`;
                 
                 // Create a preview of the colors
                 const themeColorsHtml = `
@@ -1174,13 +1181,13 @@
                 console.log('Font stack:', fontMap[themeData.font_family] || themeData.font_family);
                 
                 // Add success message with two-step generation info
-                outputElem.innerHTML = `<span class="success">Successfully generated theme using two-step generation (Gemini Flash-Lite + Runware FLUX.1 Schnell)!</span>\n\n${outputElem.textContent}`;
+                outputElem.innerHTML = `<span class="success">Successfully generated theme using two-step generation (Gemini Flash-Lite + Runware FLUX.1 Schnell)!</span>\n\n${escapeHtml(outputElem.textContent)}`;
                 
                 // Background is now applied automatically
                 
             } catch (error) {
                 console.error('Error generating theme:', error);
-                outputElem.innerHTML = `<span class="error">Error: ${error.message}</span>\n\n${outputElem.textContent}`;
+                outputElem.innerHTML = `<span class="error">Error: ${escapeHtml(error.message)}</span>\n\n${escapeHtml(outputElem.textContent)}`;
             } finally {
                 // Hide loading indicator
                 loadingElem.style.display = 'none';
@@ -1226,23 +1233,23 @@
                 
                 if (response.ok && data.themeData) {
                     outputElem.innerHTML = `<span class="success">✅ Structured Output Test Passed!</span>\n\n` +
-                        `<strong>Your Prompt:</strong> "${prompt}"\n\n` +
+                        `<strong>Your Prompt:</strong> "${escapeHtml(prompt)}"\n\n` +
                         `<strong>Theme Type:</strong> ${shouldGenerateImage ? 'With Image' : 'Color Only'}\n\n` +
                         `<strong>Generated Theme:</strong>\n` +
-                        `  - Name: ${data.themeData.theme_name}\n` +
-                        `  - Font: ${data.themeData.font_family}\n` +
-                        `  - Border Radius: ${data.themeData.border_radius}\n` +
-                        `  - Box Shadow: ${data.themeData.box_shadow}\n` +
-                        `  - Description: ${data.themeData.description}\n\n` +
-                        `${shouldGenerateImage ? `  - Image Prompt: ${data.themeData.image_prompt}\n` : ''}` +
+                        `  - Name: ${escapeHtml(data.themeData.theme_name)}\n` +
+                        `  - Font: ${escapeHtml(data.themeData.font_family)}\n` +
+                        `  - Border Radius: ${escapeHtml(data.themeData.border_radius)}\n` +
+                        `  - Box Shadow: ${escapeHtml(data.themeData.box_shadow)}\n` +
+                        `  - Description: ${escapeHtml(data.themeData.description)}\n\n` +
+                        `${shouldGenerateImage ? `  - Image Prompt: ${escapeHtml(data.themeData.image_prompt)}\n` : ''}` +
                         `${data.backgroundImage ? '  - Background Image: ✅ Generated\n' : '  - Background Image: ❌ Not generated\n'}` +
-                        `\n<strong>Full Response:</strong>\n${JSON.stringify(data, null, 2)}`;
+                        `\n<strong>Full Response:</strong>\n${escapeHtml(JSON.stringify(data, null, 2))}`;
                 } else {
                     throw new Error(data.error || 'Test failed');
                 }
             } catch (error) {
                 console.error('Error testing structured output:', error);
-                outputElem.innerHTML = `<span class="error">❌ Structured Output Test Failed: ${error.message}</span>\n\n${outputElem.textContent}`;
+                outputElem.innerHTML = `<span class="error">❌ Structured Output Test Failed: ${escapeHtml(error.message)}</span>\n\n${escapeHtml(outputElem.textContent)}`;
             } finally {
                 // Hide loading indicator
                 loadingElem.style.display = 'none';
