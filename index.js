@@ -14,6 +14,10 @@ let GoogleGenAI, Modality;
 
 const app = express();
 
+// Trust Cloud Run's load balancer (1 proxy hop) so express-rate-limit
+// can correctly read client IPs from X-Forwarded-For headers
+app.set('trust proxy', 1);
+
 // Configure CORS
 app.use(cors({
   origin: function (origin, callback) {
