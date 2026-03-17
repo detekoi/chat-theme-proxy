@@ -60,8 +60,7 @@ if (isDevelopment) {
   console.log('Running in development mode with test interface enabled');
 }
 
-// Initialize fonts on startup
-fetchGoogleFonts();
+// Fonts are initialized in main() before the server starts listening
 
 // Mount routes
 app.use('/api', themeRoutes);
@@ -88,7 +87,10 @@ async function main() {
     Modality = genAIModule.Modality;
     console.log('@google/genai SDK loaded successfully.');
 
-    // Start the server only after the SDK is loaded
+    // Initialize fonts before accepting requests
+    await fetchGoogleFonts();
+
+    // Start the server only after the SDK and fonts are loaded
     const { GEMINI_API_KEY, RUNWARE_API_KEY } = require('./config/constants');
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
