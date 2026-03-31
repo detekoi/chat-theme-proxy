@@ -4,14 +4,14 @@ const { getBorderRadiusValue, getBoxShadowValue } = require('../utils/helpers');
 const { getAvailableFonts } = require('./fontService');
 const { generateBackgroundImage } = require('./imageGenerator');
 
+const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
+
 /**
  * Build the theme schema for structured output
  * @param {string} themeType - 'image' or 'color'
  * @returns {Object} - JSON schema object
  */
 function buildThemeSchema(themeType) {
-  const availableFonts = getAvailableFonts();
-
   const baseRequiredFields = [
     "theme_name",
     "background_color",
@@ -53,8 +53,7 @@ function buildThemeSchema(themeType) {
       },
       font_family: {
         type: "string",
-        description: "Font family name from the available fonts list",
-        enum: availableFonts.map(f => f.name)
+        description: "The exact Google Fonts family name (e.g. 'Pacifico', 'Caveat', 'Oswald'). Pick any open-source Google Font that fits the theme's mood — use your full knowledge of the Google Fonts catalog, not just common fonts."
       },
       border_radius: {
         type: "string",
@@ -96,7 +95,7 @@ ${themeType === 'image' ? '2. A detailed image prompt for generating a backgroun
 
 Theme guidelines:
 - Choose colors that capture the essence of "${prompt}"
-- Select an appropriate font from the available options
+- Select a Google Font that matches the mood — be creative and thematic! Use the exact font family name as it appears in the Google Fonts catalog (e.g. "Cinzel" for Roman themes, "Creepster" for horror, "Bangers" for comics, "Sacramento" for romantic styles). Don't just pick common fonts like Roboto or Open Sans unless they genuinely fit.
 - Pick an appropriate border radius
 - Pick an appropriate box shadow style
 
@@ -161,9 +160,9 @@ function getGenerationConfig(attempt, themeType) {
  * @returns {Object} - Theme response from API
  */
 async function generateThemeData(promptText, schema, config) {
-  console.log('📝 Step 1: Generating theme data (gemini-2.5-flash-lite)...');
+  console.log(`📝 Step 1: Generating theme data (${GEMINI_MODEL})...`);
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -214,8 +213,6 @@ async function generateThemeData(promptText, schema, config) {
  * @returns {Object} - Processed result with themeData, backgroundImage, and retry info
  */
 function processThemeResponse(apiResponse, backgroundImage, themeType, attempt) {
-  const availableFonts = getAvailableFonts();
-
   // Handle RECITATION finish reason
   if (apiResponse.candidates?.[0]?.finishReason === 'RECITATION') {
     console.log('Received RECITATION finish reason. Retrying with different parameters...');
@@ -294,12 +291,19 @@ function processThemeResponse(apiResponse, backgroundImage, themeType, attempt) 
   themeData.border_radius_value = getBorderRadiusValue(themeData.border_radius);
   themeData.box_shadow_value = getBoxShadowValue(themeData.box_shadow);
 
-  // Check if the selected font is a Google Font
+  // Look up font in local list; if not found, treat as a Google Font to be loaded dynamically
+  const availableFonts = getAvailableFonts();
   const selectedFont = availableFonts.find(f => f.name === themeData.font_family);
   if (selectedFont?.isGoogleFont) {
     themeData.isGoogleFont = true;
     themeData.googleFontFamily = selectedFont.googleFontFamily;
-    console.log(`🔤 Google Font selected: ${selectedFont.googleFontFamily}`);
+    console.log(`🔤 Google Font (catalog): ${selectedFont.googleFontFamily}`);
+  } else if (!selectedFont) {
+    // Font is outside the top-100 served list — treat as a Google Font for dynamic loading
+    themeData.isGoogleFont = true;
+    themeData.googleFontFamily = themeData.font_family;
+    themeData.font_family_value = `'${themeData.font_family}', sans-serif`;
+    console.log(`🔤 Google Font (extended): ${themeData.font_family}`);
   }
 
   console.log(`✅ Theme Complete: "${themeData.theme_name}" ${backgroundImage ? '+ Background Image' : '(Color Only)'}`);
