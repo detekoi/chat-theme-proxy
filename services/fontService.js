@@ -3,8 +3,11 @@ const { initialFonts } = require('../config/fonts');
 const { GOOGLE_FONTS_API_KEY } = require('../config/constants');
 const { Firestore, Timestamp } = require('@google-cloud/firestore');
 
-// Available fonts list - will be populated with Google Fonts
+// Available fonts list - top popular fonts merged with initial
 let availableFonts = [...initialFonts];
+
+// Full Google Fonts catalog for search (populated on boot)
+let allGoogleFonts = [];
 
 // Firestore Configuration
 const FIRESTORE_COLLECTION_NAME = process.env.FIRESTORE_CACHE_COLLECTION || 'cache';
@@ -74,11 +77,15 @@ async function fetchGoogleFonts() {
   // Try to load from cache first
   const cachedFonts = await loadGoogleFontsFromCache();
   if (cachedFonts && Array.isArray(cachedFonts) && cachedFonts.length > 0) {
-    // Merge cached fonts with existing fonts, ensuring no duplicates by name
+    // Store full catalog in memory for search
+    allGoogleFonts = cachedFonts;
+
+    // Merge only top 100 into served list, ensuring no duplicates by name
+    const topFonts = cachedFonts.slice(0, 100);
     const existingNames = new Set(availableFonts.map(f => f.name));
     let addedCount = 0;
     
-    cachedFonts.forEach(gf => {
+    topFonts.forEach(gf => {
       if (!existingNames.has(gf.name)) {
         availableFonts.push(gf);
         existingNames.add(gf.name);
@@ -86,7 +93,7 @@ async function fetchGoogleFonts() {
       }
     });
     
-    console.log(`✅ Loaded ${addedCount} Google Fonts from cache.`);
+    console.log(`✅ Loaded ${addedCount} Google Fonts from cache (top 100 of ${cachedFonts.length} total).`);
     return;
   }
 
@@ -102,8 +109,8 @@ async function fetchGoogleFonts() {
     const data = await response.json();
 
     if (data.items && Array.isArray(data.items)) {
-      // Take top 50 popular fonts to avoid overwhelming the context
-      const googleFonts = data.items.slice(0, 50).map(font => ({
+      // Map ALL fonts for the searchable catalog
+      const googleFonts = data.items.map(font => ({
         name: font.family,
         value: `'${font.family}', ${font.category}, sans-serif`, // Fallback to category
         description: `Google Font: ${font.category}`,
@@ -112,11 +119,15 @@ async function fetchGoogleFonts() {
         category: font.category
       }));
 
-      // Merge with existing fonts, ensuring no duplicates by name
+      // Store full catalog in memory for search
+      allGoogleFonts = googleFonts;
+
+      // Merge top 100 popular fonts into the available list
+      const topFonts = googleFonts.slice(0, 100);
       const existingNames = new Set(availableFonts.map(f => f.name));
 
       let addedCount = 0;
-      googleFonts.forEach(gf => {
+      topFonts.forEach(gf => {
         if (!existingNames.has(gf.name)) {
           availableFonts.push(gf);
           existingNames.add(gf.name);
@@ -124,9 +135,9 @@ async function fetchGoogleFonts() {
         }
       });
 
-      console.log(`✅ Added ${addedCount} Google Fonts to the available list.`);
+      console.log(`✅ Added ${addedCount} Google Fonts to the available list (top 100 of ${googleFonts.length} total).`);
       
-      // Save to cache for next time
+      // Save full catalog to cache for next time
       await saveGoogleFontsToCache(googleFonts);
     }
   } catch (error) {
@@ -135,14 +146,49 @@ async function fetchGoogleFonts() {
 }
 
 /**
- * Get all available fonts
+ * Get all available fonts (top 100 popular + custom/system)
  * @returns {Array} - Array of font objects
  */
 function getAvailableFonts() {
   return availableFonts;
 }
 
+/**
+ * Search the full Google Fonts catalog by name.
+ * @param {string} query - Search query (case-insensitive substring match)
+ * @param {number} [limit=10] - Maximum number of results to return
+ * @returns {Array} - Matching font objects
+ */
+function searchGoogleFonts(query, limit = 10) {
+  if (!query || typeof query !== 'string' || query.trim().length < 2) {
+    return [];
+  }
+
+  const q = query.trim().toLowerCase();
+
+  // Search full catalog (includes all ~1,700 fonts)
+  // Also search the initial/custom fonts
+  const allFonts = [...initialFonts, ...allGoogleFonts];
+
+  // Deduplicate by name
+  const seen = new Set();
+  const results = [];
+
+  for (const font of allFonts) {
+    if (seen.has(font.name)) continue;
+    seen.add(font.name);
+
+    if (font.name.toLowerCase().includes(q)) {
+      results.push(font);
+      if (results.length >= limit) break;
+    }
+  }
+
+  return results;
+}
+
 module.exports = {
   fetchGoogleFonts,
-  getAvailableFonts
+  getAvailableFonts,
+  searchGoogleFonts
 };
