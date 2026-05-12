@@ -10,7 +10,7 @@
 
 ## Architecture
 Two-step theme generation:
-1. **Step 1**: `gemini-2.5-flash-lite` generates theme JSON with structured output (includes `image_prompt`)
+1. **Step 1**: `gemini-flash-lite-latest` generates theme JSON with structured output (includes `image_prompt`)
 2. **Step 2**: `gemini-2.5-flash-image` generates background pattern using `image_prompt` from Step 1
 
 Structured output with JSON schema ensures reliable parsing. Reduced retries from 5→3 attempts.

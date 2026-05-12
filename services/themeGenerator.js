@@ -4,7 +4,7 @@ const { getBorderRadiusValue, getBoxShadowValue } = require('../utils/helpers');
 const { getAvailableFonts } = require('./fontService');
 const { generateBackgroundImage } = require('./imageGenerator');
 
-const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
+const GEMINI_MODEL = 'gemini-flash-lite-latest';
 
 /**
  * Build the theme schema for structured output

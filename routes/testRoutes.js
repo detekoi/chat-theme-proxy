@@ -28,8 +28,8 @@ router.get('/test-gemini', async (req, res) => {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    // Test Step 1: gemini-2.5-flash-lite with structured output
-    const step1Response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+    // Test Step 1: gemini-flash-lite-latest with structured output
+    const step1Response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ router.get('/test-gemini', async (req, res) => {
       apiKeyConfigured: true,
       approach: 'Two-step generation',
       step1: {
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-flash-lite-latest',
         hasText: step1HasText,
         structuredOutput: true
       },
@@ -108,9 +108,9 @@ router.get('/test-image-model', async (req, res) => {
       required: ["shape", "color", "image_prompt"]
     };
 
-    // STEP 1: Test gemini-2.5-flash-lite with structured output
-    console.log('Testing Step 1: gemini-2.5-flash-lite with structured output');
-    const step1Response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+    // STEP 1: Test gemini-flash-lite-latest with structured output
+    console.log('Testing Step 1: gemini-flash-lite-latest with structured output');
+    const step1Response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ router.get('/test-image-model', async (req, res) => {
       success: true,
       approach: 'Two-step generation',
       step1: {
-        model: 'gemini-2.5-flash-lite',
+        model: 'gemini-flash-lite-latest',
         structuredOutputWorking: !!parsedJson,
         hasText: step1HasText,
         parsedJson: parsedJson

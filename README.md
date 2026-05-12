@@ -249,8 +249,8 @@ If you experience performance issues with background images:
 
 The service uses a **two-step approach** combining Gemini and Runware APIs:
 
-#### Step 1: Theme Data Generation (gemini-2.5-flash-lite)
-- **Model**: `gemini-2.5-flash-lite`
+#### Step 1: Theme Data Generation (gemini-flash-lite-latest)
+- **Model**: `gemini-flash-lite-latest`
 - **Purpose**: Generate theme JSON data + image prompt
 - **Features**:
   - Structured output with JSON schema validation
