@@ -1,0 +1,15 @@
+{
+  "name": "badge-proxy",
+  "version": "1.0.0",
+  "description": "Twitch badge proxy Cloud Functions with Firestore caching",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^8.0.0",
+    "@google-cloud/functions-framework": "^3.4.0",
+    "@google-cloud/secret-manager": "^5.6.0",
+    "axios": "^1.15.2"
+  }
+}

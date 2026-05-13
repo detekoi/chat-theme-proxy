@@ -1,24 +1,24 @@
-name: Deploy to Cloud Run
+name: Deploy to Cloud Run & Cloud Functions
 
 on:
   push:
     branches:
-      - main  # or master, depending on your default branch name
+      - main
+  workflow_dispatch:
 
 env:
   SERVICE_NAME: theme-proxy
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-  GCP_REGION: us-central1 # Or your preferred region
+  GCP_REGION: us-central1
   ARTIFACT_REGISTRY: us-central1-docker.pkg.dev
-  REPO_NAME: chat-theme-repo # From deploy.sh
-  IMAGE_NAME: theme-proxy # From deploy.sh
+  REPO_NAME: chat-theme-repo
+  IMAGE_NAME: theme-proxy
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy:
+  deploy-cloud-run:
     runs-on: ubuntu-latest
-
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -52,4 +52,64 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
+            --quiet
+
+  deploy-badge-functions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Deploy getGlobalBadges (2nd gen)
+        run: |-
+          gcloud functions deploy getGlobalBadges \
+            --gen2 \
+            --runtime nodejs20 \
+            --region ${{ env.GCP_REGION }} \
+            --source functions/badge-proxy \
+            --entry-point getGlobalBadges \
+            --trigger-http \
+            --allow-unauthenticated \
+            --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest \
+            --quiet
+
+      - name: Deploy getChannelBadges (2nd gen)
+        run: |-
+          gcloud functions deploy getChannelBadges \
+            --gen2 \
+            --runtime nodejs20 \
+            --region ${{ env.GCP_REGION }} \
+            --source functions/badge-proxy \
+            --entry-point getChannelBadges \
+            --trigger-http \
+            --allow-unauthenticated \
+            --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest \
+            --quiet
+
+      - name: Deploy refreshGlobalCache (2nd gen)
+        run: |-
+          gcloud functions deploy refreshGlobalCache \
+            --gen2 \
+            --runtime nodejs20 \
+            --region ${{ env.GCP_REGION }} \
+            --source functions/badge-proxy \
+            --entry-point refreshGlobalCache \
+            --trigger-http \
+            --no-allow-unauthenticated \
+            --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest,INTERNAL_REFRESH_TOKEN=INTERNAL_REFRESH_TOKEN:latest \
             --quiet
