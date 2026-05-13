@@ -84,7 +84,6 @@ jobs:
             --source functions/badge-proxy \
             --entry-point getGlobalBadges \
             --trigger-http \
-            --allow-unauthenticated \
             --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest \
             --quiet
 
@@ -97,7 +96,6 @@ jobs:
             --source functions/badge-proxy \
             --entry-point getChannelBadges \
             --trigger-http \
-            --allow-unauthenticated \
             --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest \
             --quiet
 
@@ -110,6 +108,5 @@ jobs:
             --source functions/badge-proxy \
             --entry-point refreshGlobalCache \
             --trigger-http \
-            --no-allow-unauthenticated \
             --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest,INTERNAL_REFRESH_TOKEN=INTERNAL_REFRESH_TOKEN:latest \
             --quiet
