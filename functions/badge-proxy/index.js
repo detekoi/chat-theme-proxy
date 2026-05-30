@@ -1,5 +1,5 @@
 // badge-proxy/index.js
-// Cloud Functions (2nd gen) for proxying Twitch Badge API calls with Firestore caching.
+// Cloud Functions (2nd gen) for proxying Twitch Badge and Cheermote API calls with Firestore caching.
 
 const axios = require('axios');
 const { Firestore, Timestamp } = require('@google-cloud/firestore');
@@ -29,11 +29,14 @@ const TWITCH_OAUTH_URL = process.env.TWITCH_OAUTH_URL || 'https://id.twitch.tv/o
 const TWITCH_APP_ACCESS_TOKEN_DOC_ID = 'twitch_app_access_token';
 const GLOBAL_BADGES_DOC_ID = 'twitch_global_badges';
 const CHANNEL_BADGES_DOC_ID_PREFIX = 'channelBadge_'; // Firestore safe prefix
+const GLOBAL_CHEERMOTES_DOC_ID = 'twitch_global_cheermotes';
+const CHANNEL_CHEERMOTES_DOC_ID_PREFIX = 'cheermote_'; // Firestore safe prefix
 
 // Cache TTLs (in seconds)
 const APP_TOKEN_TTL_SECONDS = parseInt(process.env.APP_TOKEN_TTL) || 50 * 24 * 60 * 60; // 50 days
 const GLOBAL_BADGES_TTL_SECONDS = parseInt(process.env.GLOBAL_BADGES_TTL) || 12 * 60 * 60; // 12 hours
 const CHANNEL_BADGES_TTL_SECONDS = parseInt(process.env.CHANNEL_BADGES_TTL) || 1 * 60 * 60; // 1 hour
+const CHEERMOTES_TTL_SECONDS = parseInt(process.env.CHEERMOTES_TTL) || 12 * 60 * 60; // 12 hours
 
 // --- Initialize Clients ---
 // Only initialize Secret Manager client if we actually need it (direct env vars not set)
@@ -186,6 +189,36 @@ function transformBadgeData(twitchApiResponse) {
                 title: version.title,
             };
         });
+    });
+    return transformed;
+}
+
+// --- Helper Function: Transform Cheermote Data ---
+function transformCheermoteData(twitchApiResponse) {
+    if (!twitchApiResponse || !Array.isArray(twitchApiResponse.data)) {
+        return {};
+    }
+
+    const transformed = {};
+    twitchApiResponse.data.forEach(cheermote => {
+        transformed[cheermote.prefix] = {
+            prefix: cheermote.prefix,
+            type: cheermote.type,
+            tiers: cheermote.tiers.map(tier => ({
+                min_bits: tier.min_bits,
+                color: tier.color,
+                images: {
+                    dark: {
+                        animated: tier.images?.dark?.animated || {},
+                        static: tier.images?.dark?.static || {}
+                    },
+                    light: {
+                        animated: tier.images?.light?.animated || {},
+                        static: tier.images?.light?.static || {}
+                    }
+                }
+            })).sort((a, b) => a.min_bits - b.min_bits)
+        };
     });
     return transformed;
 }
@@ -364,6 +397,65 @@ functions.http('refreshGlobalCache', async (req, res) => {
         console.error('Error in refreshGlobalCache.');
         if (!res.headersSent) {
             res.status(500).send('Internal Server Error during cache refresh.');
+        }
+    }
+});
+
+// --- Cloud Function: Get Cheermotes ---
+functions.http('getCheermotes', async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
+    const broadcasterId = req.query.broadcaster_id;
+    const cacheDocId = broadcasterId
+        ? `${CHANNEL_CHEERMOTES_DOC_ID_PREFIX}${broadcasterId}`
+        : GLOBAL_CHEERMOTES_DOC_ID;
+
+    try {
+        const cachedCheermotes = await getFromCache(cacheDocId);
+        if (cachedCheermotes) {
+            console.log(`Returning cached cheermotes for doc: ${cacheDocId}`);
+            res.status(200).json(cachedCheermotes);
+            return;
+        }
+
+        console.log(`Fetching cheermotes from Twitch API${broadcasterId ? ` for broadcaster: ${broadcasterId}` : ' (global)'}...`);
+        const accessToken = await getTwitchAppAccessToken();
+        const clientId = await getSecret(TWITCH_CLIENT_ID_SECRET_NAME);
+
+        const params = {};
+        if (broadcasterId) params.broadcaster_id = broadcasterId;
+
+        const response = await axios.get(`${TWITCH_API_BASE_URL}/bits/cheermotes`, {
+            params,
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Client-ID': clientId,
+            },
+        });
+
+        if (response.status !== 200 || !response.data) {
+            console.error('Twitch API error for cheermotes:', response.status, response.data);
+            res.status(502).send('Failed to fetch cheermotes from Twitch.');
+            return;
+        }
+
+        const transformedData = transformCheermoteData(response.data);
+
+        await setInCache(cacheDocId, transformedData, CHEERMOTES_TTL_SECONDS);
+        console.log(`Successfully fetched and cached cheermotes to Firestore doc: ${cacheDocId}`);
+
+        res.status(200).json(transformedData);
+    } catch (error) {
+        console.error('Error in getCheermotes.');
+        if (!res.headersSent) {
+            res.status(500).send('Internal Server Error.');
         }
     }
 });
