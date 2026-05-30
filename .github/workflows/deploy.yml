@@ -110,3 +110,15 @@ jobs:
             --trigger-http \
             --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest,INTERNAL_REFRESH_TOKEN=INTERNAL_REFRESH_TOKEN:latest \
             --quiet
+
+      - name: Deploy getCheermotes (2nd gen)
+        run: |-
+          gcloud functions deploy getCheermotes \
+            --gen2 \
+            --runtime nodejs22 \
+            --region ${{ env.GCP_REGION }} \
+            --source functions/badge-proxy \
+            --entry-point getCheermotes \
+            --trigger-http \
+            --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest \
+            --quiet
