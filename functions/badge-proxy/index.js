@@ -201,10 +201,13 @@ function transformCheermoteData(twitchApiResponse) {
 
     const transformed = {};
     twitchApiResponse.data.forEach(cheermote => {
+        // Skip entries with missing prefix to prevent 'undefined' key poisoning the cache
+        if (!cheermote.prefix) return;
+
         transformed[cheermote.prefix] = {
             prefix: cheermote.prefix,
             type: cheermote.type,
-            tiers: cheermote.tiers.map(tier => ({
+            tiers: (Array.isArray(cheermote.tiers) ? cheermote.tiers : []).map(tier => ({
                 min_bits: tier.min_bits,
                 color: tier.color,
                 images: {
@@ -413,6 +416,13 @@ functions.http('getCheermotes', async (req, res) => {
     }
 
     const broadcasterId = req.query.broadcaster_id;
+
+    // Validate broadcaster_id is numeric-only to prevent Firestore path injection
+    if (broadcasterId && !/^\d+$/.test(broadcasterId)) {
+        res.status(400).send('Invalid broadcaster_id.');
+        return;
+    }
+
     const cacheDocId = broadcasterId
         ? `${CHANNEL_CHEERMOTES_DOC_ID_PREFIX}${broadcasterId}`
         : GLOBAL_CHEERMOTES_DOC_ID;
@@ -426,11 +436,12 @@ functions.http('getCheermotes', async (req, res) => {
         }
 
         console.log(`Fetching cheermotes from Twitch API${broadcasterId ? ` for broadcaster: ${broadcasterId}` : ' (global)'}...`);
-        const accessToken = await getTwitchAppAccessToken();
-        const clientId = await getSecret(TWITCH_CLIENT_ID_SECRET_NAME);
+        const [accessToken, clientId] = await Promise.all([
+            getTwitchAppAccessToken(),
+            getSecret(TWITCH_CLIENT_ID_SECRET_NAME)
+        ]);
 
-        const params = {};
-        if (broadcasterId) params.broadcaster_id = broadcasterId;
+        const params = broadcasterId ? { broadcaster_id: broadcasterId } : {};
 
         const response = await axios.get(`${TWITCH_API_BASE_URL}/bits/cheermotes`, {
             params,
@@ -440,12 +451,6 @@ functions.http('getCheermotes', async (req, res) => {
             },
         });
 
-        if (response.status !== 200 || !response.data) {
-            console.error('Twitch API error for cheermotes:', response.status, response.data);
-            res.status(502).send('Failed to fetch cheermotes from Twitch.');
-            return;
-        }
-
         const transformedData = transformCheermoteData(response.data);
 
         await setInCache(cacheDocId, transformedData, CHEERMOTES_TTL_SECONDS);
@@ -453,9 +458,10 @@ functions.http('getCheermotes', async (req, res) => {
 
         res.status(200).json(transformedData);
     } catch (error) {
-        console.error('Error in getCheermotes.');
+        console.error('Error in getCheermotes:', error.response?.status, error.response?.data || error.message);
         if (!res.headersSent) {
-            res.status(500).send('Internal Server Error.');
+            const status = error.response?.status === 429 ? 429 : 500;
+            res.status(status).send('Internal Server Error.');
         }
     }
 });
