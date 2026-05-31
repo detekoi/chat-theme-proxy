@@ -9,9 +9,6 @@ const themeRoutes = require('./routes/themeRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
 const testRoutes = require('./routes/testRoutes');
 
-// Declare variables that will be populated by the dynamic import
-let GoogleGenAI, Modality;
-
 const app = express();
 
 // Trust Cloud Run's load balancer (1 proxy hop) so express-rate-limit
@@ -79,18 +76,13 @@ app.get('/', (req, res) => {
   }
 });
 
-// Main function to initialize GenAI and start the server
+// Main function to initialize fonts and start the server
 async function main() {
   try {
-    const genAIModule = await import('@google/genai');
-    GoogleGenAI = genAIModule.GoogleGenAI;
-    Modality = genAIModule.Modality;
-    console.log('@google/genai SDK loaded successfully.');
-
     // Initialize fonts before accepting requests
     await fetchGoogleFonts();
 
-    // Start the server only after the SDK and fonts are loaded
+    // Start the server only after fonts are loaded
     const { GEMINI_API_KEY, RUNWARE_API_KEY } = require('./config/constants');
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -105,7 +97,7 @@ async function main() {
     });
 
   } catch (err) {
-    console.error("Failed to load @google/genai SDK or start server:", err);
+    console.error("Failed to start server:", err);
     process.exit(1);
   }
 }
