@@ -120,6 +120,5 @@ jobs:
             --source functions/badge-proxy \
             --entry-point getCheermotes \
             --trigger-http \
-            --allow-unauthenticated \
             --set-secrets TWITCH_CLIENT_ID=TWITCH_CLIENT_ID:latest,TWITCH_CLIENT_SECRET=TWITCH_CLIENT_SECRET:latest \
             --quiet
