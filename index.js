@@ -34,7 +34,7 @@ app.use(cors({
     const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
     return callback(new Error(msg), false);
   },
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -60,8 +60,10 @@ if (isDevelopment) {
 // Fonts are initialized in main() before the server starts listening
 
 // Mount routes
+const sceneConfigRoutes = require('./routes/sceneConfigRoutes');
 app.use('/api', themeRoutes);
 app.use('/api', resourceRoutes);
+app.use('/api', sceneConfigRoutes);
 app.use('/api', testRoutes);
 app.use('/', testRoutes); // Health check at root level
 
