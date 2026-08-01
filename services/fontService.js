@@ -112,7 +112,11 @@ async function fetchGoogleFonts() {
       // Map ALL fonts for the searchable catalog
       const googleFonts = data.items.map(font => ({
         name: font.family,
-        value: `'${font.family}', ${font.category}, sans-serif`, // Fallback to category
+        // Fallback to category, then to a generic sans-serif — but don't repeat
+        // the same keyword twice when the category already IS "sans-serif".
+        value: font.category === 'sans-serif'
+          ? `'${font.family}', sans-serif`
+          : `'${font.family}', ${font.category}, sans-serif`,
         description: `Google Font: ${font.category}`,
         isGoogleFont: true,
         googleFontFamily: font.family,

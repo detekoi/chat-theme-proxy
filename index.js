@@ -24,6 +24,12 @@ app.use(cors({
     // Allow trusted domains
     if (origin === 'https://detekoi.github.io') return callback(null, true);
     if (origin === 'https://wildcat.chat') return callback(null, true);
+    if (origin === 'https://www.wildcat.chat') return callback(null, true);
+
+    // Allow Firebase preview domains (e.g. wildcat-chat--*.web.app or wildcat-*.web.app)
+    if (/^https:\/\/wildcat-[a-z0-9-]+\.web\.app$/i.test(origin) || /^https:\/\/wildcat-[a-z0-9-]+\.firebaseapp\.com$/i.test(origin)) {
+      return callback(null, true);
+    }
 
     // Allow local development (localhost/127.0.0.1 on any port, http or https)
     if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:') ||
