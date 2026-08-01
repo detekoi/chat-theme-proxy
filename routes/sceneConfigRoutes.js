@@ -126,6 +126,7 @@ router.get('/scene-config/:token', validateToken, async (req, res) => {
       return res.status(404).json({ error: 'Scene configuration not found.' });
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     return res.status(200).json(sceneConfig);
   } catch (err) {
     console.error('Error retrieving scene config:', err);
