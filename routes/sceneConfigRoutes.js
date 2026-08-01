@@ -1,24 +1,16 @@
 // routes/sceneConfigRoutes.js
 const express = require('express');
-const rateLimit = require('express-rate-limit');
 const { upsertSceneConfig, getSceneConfig, deleteSceneConfig } = require('../services/sceneConfigService');
 const { uploadDataUrlToGCS, deleteImagesForToken } = require('../services/storageService');
+const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
 
 const router = express.Router();
 
+// Own limiter instance: 30 req / 15 min / IP for scene config writes and deletes.
+const sceneConfigLimiter = createTokenLimiter({ max: 30 });
+
 // Middleware: Route-scoped body parser up to 1MB (overriding global limit for bgImage data URLs)
 const jsonParser = express.json({ limit: '1mb' });
-
-// Middleware: Rate limiting specifically for scene config updates/deletes (30 req / 15 min / IP)
-const sceneConfigLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many configuration requests. Please try again later.' }
-});
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Every key the overlay reads: ConfigManager.getDefaultConfig() plus the runtime-only
 // keys written by settings-panel-manager (googleFontFamily, bgImage, channel targets,
@@ -51,14 +43,6 @@ function sanitizeConfig(config) {
     }
   }
   return sanitized;
-}
-
-function validateToken(req, res, next) {
-  const { token } = req.params;
-  if (!token || !UUID_REGEX.test(token)) {
-    return res.status(400).json({ error: 'Invalid token format. Token must be a valid UUID.' });
-  }
-  next();
 }
 
 // PUT /api/scene-config/:token

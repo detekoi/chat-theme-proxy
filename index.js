@@ -67,9 +67,11 @@ if (isDevelopment) {
 
 // Mount routes
 const sceneConfigRoutes = require('./routes/sceneConfigRoutes');
+const themeLibraryRoutes = require('./routes/themeLibraryRoutes');
 app.use('/api', themeRoutes);
 app.use('/api', resourceRoutes);
 app.use('/api', sceneConfigRoutes);
+app.use('/api', themeLibraryRoutes);
 app.use('/api', testRoutes);
 app.use('/', testRoutes); // Health check at root level
 

@@ -5,6 +5,10 @@ service cloud.firestore {
       allow get: if true;
       allow list, create, update, delete: if false;
     }
+    match /themeLibraries/{token} {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
     match /{document=**} {
       allow read, write: if false;
     }

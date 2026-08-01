@@ -8,9 +8,10 @@ const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'chat-themer-backgrounds';
  * Uploads a base64 data URL to Google Cloud Storage and returns its public HTTPS URL.
  * @param {string} dataUrl - The data URL string (e.g. data:image/png;base64,...)
  * @param {string} filename - The destination filename (e.g. token.png)
+ * @param {string} [destinationPrefix='backgrounds/'] - The GCS path prefix to upload under.
  * @returns {Promise<string|null>} The public GCS URL or null if upload fails
  */
-async function uploadDataUrlToGCS(dataUrl, filename) {
+async function uploadDataUrlToGCS(dataUrl, filename, destinationPrefix = 'backgrounds/') {
   if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
     return null;
   }
@@ -36,7 +37,7 @@ async function uploadDataUrlToGCS(dataUrl, filename) {
     };
 
     const extension = MIME_EXTENSION_MAP[contentType] || contentType.split('/')[1]?.replace(/[^a-z0-9]/gi, '') || 'png';
-    const destinationPath = `backgrounds/${filename.includes('.') ? filename : `${filename}.${extension}`}`;
+    const destinationPath = `${destinationPrefix}${filename.includes('.') ? filename : `${filename}.${extension}`}`;
 
     const bucket = storage.bucket(BUCKET_NAME);
     const file = bucket.file(destinationPath);
@@ -86,7 +87,29 @@ async function deleteImagesForToken(token) {
   }
 }
 
+/**
+ * Deletes any background images previously uploaded for a theme in a user's theme library.
+ * Library tokens are fixed-length UUIDs and theme IDs are UUIDs, so the
+ * "theme-backgrounds/<libraryToken>/<themeId>." prefix cannot match another theme's files.
+ * @param {string} libraryToken - The theme library token whose theme image should be removed.
+ * @param {string} themeId - The theme ID whose images should be removed.
+ * @returns {Promise<void>}
+ */
+async function deleteImagesForTheme(libraryToken, themeId) {
+  try {
+    const bucket = storage.bucket(BUCKET_NAME);
+    const [files] = await bucket.getFiles({ prefix: `theme-backgrounds/${libraryToken}/${themeId}.` });
+    await Promise.all(files.map(file => file.delete().catch(() => {})));
+    if (files.length > 0) {
+      console.log(`[storageService] Deleted ${files.length} theme background image(s) for theme ${themeId}`);
+    }
+  } catch (err) {
+    console.warn('[storageService] Failed to delete theme background images:', err.message);
+  }
+}
+
 module.exports = {
   uploadDataUrlToGCS,
-  deleteImagesForToken
+  deleteImagesForToken,
+  deleteImagesForTheme
 };
