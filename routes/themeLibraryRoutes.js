@@ -21,7 +21,13 @@ const ALLOWED_THEME_KEYS = new Set([
   'name', 'value', 'description', 'bgColor', 'bgColorOpacity', 'borderColor', 'textColor',
   'usernameColor', 'timestampColor', 'pronounBadgeColor', 'fontFamily', 'isGoogleFont',
   'googleFontFamily', 'borderRadius', 'borderRadiusValue', 'boxShadow', 'boxShadowValue',
-  'textShadow', 'backgroundImage', 'bgImageOpacity', 'topFade', 'isGenerated'
+  'textShadow', 'backgroundImage', 'bgImageOpacity', 'topFade', 'isGenerated',
+  // Variant bookkeeping: without these surviving the round-trip, a re-generated
+  // prompt that produces the same theme_name gets no "(Variant N)" suffix, its
+  // name collides with the stored copy, and the client's dedupe-by-name silently
+  // refuses to insert it — which is how "apply" ended up falling back to the
+  // default theme.
+  'originalThemeName', 'variant'
 ]);
 
 function sanitizeTheme(theme) {

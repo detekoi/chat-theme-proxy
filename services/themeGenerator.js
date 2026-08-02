@@ -4,7 +4,7 @@ const { getBorderRadiusValue, getBoxShadowValue } = require('../utils/helpers');
 const { getAvailableFonts } = require('./fontService');
 const { generateBackgroundImage } = require('./imageGenerator');
 
-const GEMINI_MODEL = 'gemini-flash-lite-latest';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 /**
  * Build the theme schema for structured output
@@ -18,9 +18,13 @@ function buildThemeSchema(themeType) {
     "border_color",
     "text_color",
     "username_color",
+    "timestamp_color",
+    "pronoun_badge_color",
     "font_family",
     "border_radius",
     "box_shadow",
+    "text_shadow",
+    "bg_image_opacity",
     "description"
   ];
 
@@ -51,6 +55,14 @@ function buildThemeSchema(themeType) {
         type: "string",
         description: "Hex color for usernames (e.g., #9147ff)"
       },
+      timestamp_color: {
+        type: "string",
+        description: "Hex color for message timestamps — usually a muted version of the text color (e.g., #adadb8)"
+      },
+      pronoun_badge_color: {
+        type: "string",
+        description: "Hex color for pronoun badges — usually matches or complements the timestamp color (e.g., #adadb8)"
+      },
       font_family: {
         type: "string",
         description: "The exact Google Fonts family name (e.g. 'Pacifico', 'Caveat', 'Oswald'). Pick any open-source Google Font that fits the theme's mood — use your full knowledge of the Google Fonts catalog, not just common fonts."
@@ -65,6 +77,17 @@ function buildThemeSchema(themeType) {
         description: "Box shadow preset",
         enum: ["None", "Soft", "Simple 3D", "Intense 3D", "Sharp"]
       },
+      text_shadow: {
+        type: "string",
+        description: "Text shadow preset — use shadows to keep text readable over busy backgrounds, or Glow/Outline for stylized themes",
+        enum: ["None", "Soft", "Sharp", "Outline", "Strong", "Glow"]
+      },
+      bg_image_opacity: {
+        type: "number",
+        minimum: 0,
+        maximum: 1,
+        description: "Opacity of the background pattern image, 0.0-1.0. Use lower values (0.2-0.5) for busy patterns to keep chat readable; use 0.55 as a sensible default. For color-only themes this is ignored — return 0.55."
+      },
       description: {
         type: "string",
         description: "Brief description capturing the essence of the theme"
@@ -76,7 +99,8 @@ function buildThemeSchema(themeType) {
           : "Not needed for color-only themes - can be empty or omitted"
       }
     },
-    required: requiredFields
+    required: requiredFields,
+    additionalProperties: false
   };
 }
 
@@ -95,9 +119,13 @@ ${themeType === 'image' ? '2. A detailed image prompt for generating a backgroun
 
 Theme guidelines:
 - Choose colors that capture the essence of "${prompt}"
+- Give the theme a distinctive, creative name — avoid generic names, and vary your naming if the prompt is a common concept
 - Select a Google Font that matches the mood — be creative and thematic! Use the exact font family name as it appears in the Google Fonts catalog (e.g. "Cinzel" for Roman themes, "Creepster" for horror, "Bangers" for comics, "Sacramento" for romantic styles). Don't just pick common fonts like Roboto or Open Sans unless they genuinely fit.
 - Pick an appropriate border radius
 - Pick an appropriate box shadow style
+- Pick a text shadow preset that fits: shadows/outlines aid readability over background images; Glow suits neon/sci-fi moods; None suits clean minimal looks
+- Choose timestamp and pronoun badge colors that are muted relative to the main text color but still readable against the background
+- Set bg_image_opacity so the pattern stays subtle behind chat text (0.2-0.5 for busy patterns, up to 0.7 for very faint ones)
 
 ${themeType === 'image' ? `
 Image prompt guidelines:
@@ -128,28 +156,16 @@ For color-only themes:
  * @returns {Object} - Generation config with temperature, topK, topP
  */
 function getGenerationConfig(attempt, themeType) {
-  let temperature = 0.5;
-  let topK = 20;
-  let topP = 0.9;
+  // Gemini 3.x models are tuned for temperature 1.0; lowering it (or clamping
+  // topK/topP) degrades output and made theme names collapse to the same value
+  // for every run of a given prompt. Keep defaults; nudge on retries only.
+  const temperature = attempt > 0 ? 1.2 : 1.0;
 
   if (attempt > 0) {
-    if (attempt === 1) {
-      temperature = 1.1;
-      topK = 32;
-      topP = 0.92;
-    } else if (attempt === 2) {
-      temperature = 0.4;
-      topK = 40;
-      topP = 0.85;
-    } else {
-      temperature = 0.3;
-      topK = 20;
-      topP = 0.8;
-    }
-    console.log(`Retry attempt ${attempt}: Using temperature=${temperature}, topK=${topK}, topP=${topP}`);
+    console.log(`Retry attempt ${attempt}: Using temperature=${temperature}`);
   }
 
-  return { temperature, topK, topP };
+  return { temperature };
 }
 
 /**
@@ -174,9 +190,10 @@ async function generateThemeData(promptText, schema, config) {
       }],
       generationConfig: {
         temperature: config.temperature,
-        topK: config.topK,
-        topP: config.topP,
-        responseSchema: schema,
+        // responseJsonSchema accepts standard JSON Schema (enum, min/max,
+        // additionalProperties) — the documented structured-output path,
+        // superseding the OpenAPI-subset responseSchema field.
+        responseJsonSchema: schema,
         responseMimeType: "application/json"
       }
     })
