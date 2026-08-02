@@ -1,7 +1,7 @@
 // routes/themeLibraryRoutes.js
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { getLibrary, addTheme, deleteTheme } = require('../services/themeLibraryService');
+const { getLibrary, addTheme, deleteTheme, setActiveTheme } = require('../services/themeLibraryService');
 const { uploadDataUrlToGCS, deleteImagesForTheme } = require('../services/storageService');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
 
@@ -123,6 +123,26 @@ router.delete('/theme-library/:token/themes/:themeId', tokenLimiter, validateTok
   } catch (err) {
     console.error('[themeLibraryRoutes] Error deleting theme:', err.message);
     return res.status(500).json({ error: 'Failed to delete theme.' });
+  }
+});
+
+// PUT /api/theme-library/:token/active-theme
+// Lightweight endpoint for cross-page carousel sync: persists which theme is
+// currently selected so other browser tabs/pages pick it up via onSnapshot.
+router.put('/theme-library/:token/active-theme', tokenLimiter, jsonParser, validateToken, async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { themeValue, updatedBy } = req.body || {};
+
+    if (!themeValue || typeof themeValue !== 'string') {
+      return res.status(400).json({ error: 'Missing or invalid "themeValue" string in payload.' });
+    }
+
+    await setActiveTheme(token, themeValue, updatedBy || null);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[themeLibraryRoutes] Error setting active theme:', err.message);
+    return res.status(500).json({ error: 'Failed to set active theme.' });
   }
 });
 

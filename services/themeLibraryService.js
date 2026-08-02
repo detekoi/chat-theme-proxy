@@ -127,9 +127,29 @@ async function deleteTheme(token, themeId) {
   return removedId;
 }
 
+/**
+ * Persists the currently active (selected) theme value and the originating
+ * client ID into the library doc. Other browser tabs/pages that subscribe via
+ * onSnapshot see the change in real time and can update their own carousel,
+ * using `activeThemeUpdatedBy` for echo suppression.
+ *
+ * @param {string} token - The theme library token (UUID).
+ * @param {string} themeValue - The `value` field of the selected theme.
+ * @param {string} updatedBy - Client ID of the page that made the selection.
+ */
+async function setActiveTheme(token, themeValue, updatedBy) {
+  const docRef = firestore.collection(COLLECTION_NAME).doc(token);
+  await docRef.set({
+    activeTheme: themeValue || null,
+    activeThemeUpdatedBy: updatedBy || null,
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+}
+
 module.exports = {
   getLibrary,
   addTheme,
   deleteTheme,
+  setActiveTheme,
   MAX_LIBRARY_THEMES
 };
