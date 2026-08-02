@@ -18,6 +18,10 @@ const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true';
 // Max retry attempts for theme generation
 const MAX_RETRY_ATTEMPTS = 3;
 
+// Rate limiting constants for theme generation (default 30 requests per 15 min)
+const GENERATE_THEME_RATE_LIMIT = parseInt(process.env.GENERATE_THEME_RATE_LIMIT, 10) || 30;
+const GENERATE_THEME_WINDOW_MS = parseInt(process.env.GENERATE_THEME_WINDOW_MS, 10) || 15 * 60 * 1000;
+
 module.exports = {
   isDevelopment,
   PORT,
@@ -25,5 +29,7 @@ module.exports = {
   RUNWARE_API_KEY,
   GOOGLE_FONTS_API_KEY,
   VERBOSE_LOGGING,
-  MAX_RETRY_ATTEMPTS
+  MAX_RETRY_ATTEMPTS,
+  GENERATE_THEME_RATE_LIMIT,
+  GENERATE_THEME_WINDOW_MS
 };

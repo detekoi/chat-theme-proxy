@@ -1,10 +1,19 @@
 // routes/testRoutes.js
 const express = require('express');
-const { GEMINI_API_KEY } = require('../config/constants');
+const rateLimit = require('express-rate-limit');
+const { GEMINI_API_KEY, GENERATE_THEME_RATE_LIMIT, GENERATE_THEME_WINDOW_MS } = require('../config/constants');
 const { getAvailableFonts } = require('../services/fontService');
 const { borderRadiusPresets, boxShadowPresets } = require('../config/presets');
 
 const router = express.Router();
+
+const testAiLimiter = rateLimit({
+  windowMs: GENERATE_THEME_WINDOW_MS,
+  max: GENERATE_THEME_RATE_LIMIT,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many test requests. Please try again later.' }
+});
 
 // GET /api/debug
 router.get('/debug', (req, res) => {
@@ -22,7 +31,7 @@ router.get('/debug', (req, res) => {
 });
 
 // GET /api/test-gemini
-router.get('/test-gemini', async (req, res) => {
+router.get('/test-gemini', testAiLimiter, async (req, res) => {
   try {
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: 'API key not configured' });
@@ -91,7 +100,7 @@ router.get('/test-gemini', async (req, res) => {
 });
 
 // GET /api/test-image-model
-router.get('/test-image-model', async (req, res) => {
+router.get('/test-image-model', testAiLimiter, async (req, res) => {
   try {
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: 'API key not configured' });

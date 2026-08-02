@@ -1,11 +1,24 @@
 // routes/themeRoutes.js
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { generateTheme } = require('../services/themeGenerator');
+const { GENERATE_THEME_RATE_LIMIT, GENERATE_THEME_WINDOW_MS } = require('../config/constants');
 
 const router = express.Router();
 
+const generateThemeLimiter = rateLimit({
+  windowMs: GENERATE_THEME_WINDOW_MS,
+  max: GENERATE_THEME_RATE_LIMIT,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many theme generation requests. Please try again later.',
+    retryAfterMinutes: Math.ceil(GENERATE_THEME_WINDOW_MS / (60 * 1000))
+  }
+});
+
 // POST /api/generate-theme
-router.post('/generate-theme', async (req, res) => {
+router.post('/generate-theme', generateThemeLimiter, async (req, res) => {
   try {
     const { prompt, attempt = 0, themeType = 'image' } = req.body;
 

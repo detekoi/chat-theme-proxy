@@ -1,62 +1,63 @@
 # Twitch Chat Theme Generator Proxy
 
-A simple Express server that acts as a proxy for the Gemini API, generating Twitch chat themes for my [Twitch Chat Overlay](https://github.com/detekoi/compact-chat-overlay) based on user prompts.
+An Express server that acts as a proxy for the Gemini API. It generates Twitch chat themes for the [Twitch Chat Overlay](https://github.com/detekoi/wildcat-home) based on user prompts.
 
 ## Features
 
-- Secure server-side API key handling for Gemini API
-- Theme generation based on text prompts
-- Expanded font selection including custom fonts
-- Test interface for trying the theme generator
-- AI-generated tiled background patterns that match the theme
+- Secure server-side API key handling for the Gemini API
+- Theme generation from text prompts
+- Font selection with custom Google Fonts
+- Web interface for testing theme generation
+- AI-generated background pattern images that match the theme
+- Dedicated rate limiting on generation endpoints
 
 ## Setup
 
-1. Clone the repository
+1. Clone the repository.
 2. Install dependencies:
-   ```
+   ```bash
    npm install
    ```
-3. Create a `.env` file in the root directory with your API keys:
-   ```
+3. Create a `.env` file in the root directory. Add your API keys:
+   ```env
    GEMINI_API_KEY=your_gemini_api_key_here
    RUNWARE_API_KEY=your_runware_api_key_here
    ```
 
 ## Running the Server
 
-For development (with auto-restart on file changes):
-```
+If you develop locally with auto-restart:
+```bash
 npm run dev
 ```
 
-For production:
-```
+If you run in production mode:
+```bash
 npm start
 ```
 
-The server will start on port 8091 by default. You can change this by setting the `PORT` environment variable.
+The server starts on port 8091 by default. If you want to change the port, set the `PORT` environment variable.
 
 ## Testing
 
-Access the test interface at http://localhost:8091 after starting the server.
+If you want to access the test interface, open `http://localhost:8091` in your browser after you start the server.
 
 ## API Endpoints
 
-- `GET /` - Test interface for theme generation
-- `GET /health` - Health check endpoint
-- `POST /api/generate-theme` - Generate a theme based on a prompt
-- `GET /api/fonts` - Get list of available fonts
+- `GET /` - Test interface in development or health check message in production
+- `GET /health` - Health check status
+- `POST /api/generate-theme` - Generate a chat theme from a prompt (rate limited to 30 requests per 15 minutes per IP)
+- `GET /api/fonts` - Get available Google Fonts
 
 ## Docker
 
-Build the Docker image:
-```
+To build the Docker image, run:
+```bash
 docker build -t chat-theme-proxy .
 ```
 
-Run the container:
-```
+To run the container:
+```bash
 docker run -p 8091:8091 -e GEMINI_API_KEY=your_gemini_api_key_here -e RUNWARE_API_KEY=your_runware_api_key_here chat-theme-proxy
 ```
 
@@ -64,7 +65,7 @@ docker run -p 8091:8091 -e GEMINI_API_KEY=your_gemini_api_key_here -e RUNWARE_AP
 
 ### Manual Deployment via Script
 
-1. Install and set up the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
+1. Install and set up the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install).
 
 2. Set your API keys as environment variables:
    ```bash
@@ -77,62 +78,65 @@ docker run -p 8091:8091 -e GEMINI_API_KEY=your_gemini_api_key_here -e RUNWARE_AP
    ./deploy.sh
    ```
 
-The script will:
-- Validate environment variables
-- Configure Docker authentication for GCP
-- Build and push the container image
-- Deploy to Cloud Run with appropriate settings
+The script performs four tasks:
+- Validates environment variables.
+- Configures Docker authentication for GCP.
+- Builds and pushes the container image.
+- Deploys the service to Cloud Run with configuration settings.
 
 ### GitHub Actions Deployment
 
-For automated deployments via GitHub Actions, you'll need to set up the following secrets in your GitHub repository:
+If you use automated deployment with GitHub Actions, set these repository secrets:
 
-1. Go to your repository Settings → Secrets and Variables → Actions
-2. Add the following secrets:
+1. Go to Settings → Secrets and variables → Actions in your repository.
+2. Add these four secrets:
    - `GCP_PROJECT_ID`: Your Google Cloud Project ID
    - `GCP_SA_KEY`: Your Google Cloud Service Account key JSON
    - `GEMINI_API_KEY`: Your Gemini API key
    - `RUNWARE_API_KEY`: Your Runware API key
 
-The workflow will automatically:
-- Build and push the Docker image to Google Artifact Registry
-- Deploy to Cloud Run on every push to the main branch
-- Configure environment variables and secrets
-- Set up public access to the service
+The GitHub workflow performs four actions when you push to the main branch:
+- Builds and pushes the Docker image to Google Artifact Registry.
+- Deploys the service to Cloud Run.
+- Configures environment variables and secrets.
+- Sets up public access for the service.
 
 ### Required GCP Setup
 
-Before deploying, ensure you have:
+Before you deploy, make sure that you complete these steps:
 
-1. Created a Google Cloud Project
-2. Enabled the following APIs:
+1. Create a Google Cloud Project.
+2. Enable these APIs:
    - Cloud Run API
    - Cloud Build API
    - Artifact Registry API
-3. Created a Service Account with the following roles:
+3. Create a Service Account with these four roles:
    - Cloud Run Admin
    - Cloud Build Service Account
    - Service Account User
    - Artifact Registry Writer
-4. Generated and downloaded the Service Account key JSON
+4. Download the Service Account key JSON file.
 
-## Live Deployment
+## Deployment and API Usage
 
-The service is currently deployed and available at:
-**https://theme-proxy-361545143046.us-central1.run.app**
+Deploy the service to Google Cloud Run or run it locally.
 
-### API Usage
+### Rate Limiting
 
-Generate a theme with background image:
+The API rate limits theme generation (`POST /api/generate-theme`) to 30 requests per 15 minutes per IP address. If a client exceeds this limit, the server returns an HTTP 429 status code.
+
+### API Usage Examples
+
+If you want to generate a theme with a background image, send a request to your server endpoint:
 ```bash
-curl -X POST https://theme-proxy-361545143046.us-central1.run.app/api/generate-theme \
+curl -X POST http://localhost:8091/api/generate-theme \
   -H "Content-Type: application/json" \
   -d '{"prompt":"cozy cabin","themeType":"image","attempt":0}'
 ```
 
-Generate a text-only theme:
+If you want to generate a color-only theme without a background image:
 ```bash
-curl -X POST https://theme-proxy-361545143046.us-central1.run.app/api/generate-theme \
+curl -X POST http://localhost:8091/api/generate-theme \
   -H "Content-Type: application/json" \
   -d '{"prompt":"cyberpunk neon","themeType":"color","attempt":0}'
 ```
@@ -141,19 +145,19 @@ curl -X POST https://theme-proxy-361545143046.us-central1.run.app/api/generate-t
 
 ### Overview
 
-The theme generator uses a **two-step approach** combining Gemini for theme generation and Runware for image generation to create subtle tiled background patterns that match the theme generated from the user's prompt. This approach balances quality and cost-effectiveness.
+The service uses a two-step process to create background patterns. Step 1 calls the Gemini API to generate the theme configuration. Step 2 calls the Runware API to generate a matching background pattern image.
 
 ### Technical Details
 
 #### Image Format and Storage
 
-- Images are returned from Gemini as base64-encoded PNG data
-- These are included in the API response as `backgroundImage.data` and `backgroundImage.mimeType`
-- The data can be used directly in CSS as `data:image/png;base64,{data}`
+- The API returns images as base64-encoded PNG data.
+- The API includes image data in `backgroundImage.data` and `backgroundImage.mimeType`.
+- You can use the data in CSS as `data:image/png;base64,{data}`.
 
 #### CSS Implementation
 
-The background patterns are implemented by [Chat Overlay](https://github.com/detekoi/compact-chat-overlay) using pseudo-elements with the following CSS properties:
+The [Chat Overlay](https://github.com/detekoi/wildcat-home) application displays background patterns with CSS pseudo-elements.
 
 For chat windows (using `::before` on `#chat-wrapper`):
 ```css
@@ -183,7 +187,7 @@ pointer-events: none;
 
 #### API Response Structure
 
-The API returns a JSON object with the following structure:
+The API returns a JSON object with this structure:
 
 ```json
 {
@@ -213,87 +217,82 @@ The API returns a JSON object with the following structure:
 
 #### Image Size
 
-The default tile size is set to 320px. This can be adjusted by changing the `background-size` property in the CSS.
+The default pattern tile size is 320px. Change the `background-size` CSS property if you want a different pattern size.
 
 #### Request Parameters
 
-- `prompt`: String describing the desired theme (e.g., "cozy cabin", "cyberpunk neon")
-- `themeType`: "image" for themes with background images, "color" for color-only themes
-- `attempt`: Number indicating retry attempt (usually 0 for first request)
+- `prompt`: String that describes the theme (for example, "cozy cabin")
+- `themeType`: "image" for themes with background patterns, or "color" for color-only themes
+- `attempt`: Number of the retry attempt (0 for the first request)
 
 #### Disabling Background Images
 
-To generate themes without background images, set `themeType: "color"` in your request.
+If you want color-only themes without background images, set `themeType: "color"` in your request body.
 
 ### Troubleshooting
 
-#### Image Not Appearing
+#### Background Image Does Not Appear
 
-If the background image doesn't appear:
-
-1. Check the browser console for errors
-2. Verify that the CSS variable is being set correctly
-3. Ensure the data URL is valid and contains the correct MIME type
-4. Try adjusting the opacity of the background color to make the pattern more visible
+If the background image does not appear, follow these four steps:
+1. Open the browser console and check for network errors.
+2. Verify that the CSS variable contains the image data URL.
+3. Make sure that the data URL contains a valid MIME type.
+4. Reduce the opacity of the background color if the pattern is hidden.
 
 #### Performance Issues
 
-If you experience performance issues with background images:
-
-1. Use `themeType: "color"` for faster generation without images
-2. Cache generated themes on the client side to avoid repeated API calls
+If request speed decreases:
+1. Set `themeType: "color"` to generate themes without background images.
+2. Store generated themes on the client side to avoid repeated API requests.
 
 ## Implementation Notes
 
 ### Two-Step Generation Process
 
-The service uses a **two-step approach** combining Gemini and Runware APIs:
+The service combines two APIs:
 
-#### Step 1: Theme Data Generation (gemini-flash-lite-latest)
+#### Step 1: Theme Data Generation (`gemini-flash-lite-latest`)
 - **Model**: `gemini-flash-lite-latest`
-- **Purpose**: Generate theme JSON data + image prompt
+- **Function**: Generates theme JSON data and an image prompt
 - **Features**:
-  - Structured output with JSON schema validation
-  - Response MIME Type: `application/json`
-  - Guaranteed consistent format
-  - Includes `image_prompt` field for Step 2
+  - Uses structured output with JSON schema validation
+  - Sets response MIME type to `application/json`
+  - Returns a consistent response format
+  - Creates the `image_prompt` field for Step 2
 
 #### Step 2: Image Generation (Runware FLUX.1 Schnell)
 - **Model**: `runware:100@1` (FLUX.1 Schnell)
-- **Purpose**: Generate background pattern image
-- **Input**: Uses `image_prompt` from Step 1
+- **Function**: Generates the background pattern image
+- **Input**: Uses the `image_prompt` created in Step 1
 - **Features**:
-  - Fast, cost-effective image generation
-  - Creates seamless tileable patterns
-  - 512x512 PNG output via base64
-  - Only called when `themeType === 'image'`
+  - Generates seamless tileable patterns
+  - Returns a 512x512 PNG image in base64 format
+  - Runs only when `themeType === 'image'`
 
-### Why Two Steps?
+### Why Two Steps
 
-By separating theme generation from image generation:
-1. **Step 1** uses Gemini for reliable JSON generation with schema validation
-2. **Step 2** uses Runware FLUX.1 Schnell for cost-effective, fast image generation
-3. Result: Best of both worlds - reliable theme data + affordable high-quality images
+The service divides theme creation into two steps:
+1. Step 1 uses Gemini to create structured JSON theme data with schema validation.
+2. Step 2 uses Runware FLUX.1 Schnell to create background images.
+3. The process delivers reliable theme structure and fast image generation.
 
 ### Structured Output Benefits
 
-The structured output in Step 1 provides:
-- **Guaranteed JSON format**: No complex parsing or retry logic needed
-- **Schema validation**: Enum constraints ensure valid font families, border radius, and box shadow values
-- **Reduced retries**: From 5 attempts to 3, as JSON parsing is now reliable
-- **Consistent responses**: All fields are validated against the defined schema
-- **Image prompt generation**: Model creates optimal prompt for Step 2
+Structured output in Step 1 provides these four benefits:
+- Guaranteed JSON format without custom parsing.
+- Schema validation for font families, border radius, and box shadow options.
+- Reduced retry attempts (3 attempts instead of 5).
+- Clear image prompts generated for Step 2.
 
 ### Error Handling
 
-The service includes robust error handling and retry logic:
-- Reduced retry attempts (3 instead of 5) due to structured output reliability
-- Automatic retries for transient failures
-- Graceful degradation when image generation fails
-- Detailed error messages for debugging
+The service includes retry logic and error reporting:
+- Retries transient API failures automatically (up to 3 attempts).
+- Returns theme color data if image generation fails.
+- Sends descriptive error messages for debugging.
 
-### Security
+### Security and Rate Limiting
 
-- API keys are stored securely in Google Cloud Secret Manager
-- All requests are validated and sanitized
-- Rate limiting and abuse prevention measures are in place
+- API keys stay in Google Cloud Secret Manager.
+- Route-level rate limiting caps theme generation (`POST /api/generate-theme`) to 30 requests per 15 minutes per IP address.
+- All requests undergo validation and sanitization.
