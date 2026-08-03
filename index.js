@@ -49,9 +49,16 @@ app.use(express.json());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per window
+  max: 600, // limit each IP to 600 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for OPTIONS preflight and static read-only resource endpoints
+    if (req.method === 'OPTIONS') return true;
+    if (req.path === '/api/fonts' || req.path.startsWith('/api/fonts/')) return true;
+    if (req.path === '/api/border-radius-presets' || req.path === '/api/box-shadow-presets') return true;
+    return false;
+  }
 });
 app.use(limiter);
 
