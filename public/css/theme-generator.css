@@ -1,0 +1,171 @@
+/* AI Theme Generator */
+#theme-prompt {
+    flex: 1;
+    min-width: 0;
+}
+
+#generate-theme-btn {
+    background-color: #9147ff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0;
+    transition: background-color 0.2s ease;
+}
+
+#generate-theme-btn:hover {
+    background-color: #772ce8;
+}
+
+#generate-theme-btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+#theme-loading-indicator {
+    margin-left: 10px;
+    font-style: italic;
+    color: #aaa;
+}
+
+#generated-theme-result {
+    background-color: rgba(145, 71, 255, 0.2);
+    padding: 8px;
+    border-radius: 4px;
+    border-left: 3px solid #9147ff;
+    font-size: 14px;
+}
+
+#generated-theme-name {
+    font-weight: bold;
+}
+
+.color-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 175px;
+}
+.color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.color-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 5px;
+}
+.color-btn {
+    flex: 1 1 calc(33% - 5px);
+    margin: 0;
+    padding: 3px 5px;
+    font-size: 11px;
+    min-width: 0;
+}
+
+.color-btn.active {
+    outline: 2px solid #ffffff;
+    outline-offset: -2px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+    transform: scale(1.05);
+    position: relative;
+    z-index: 1;
+}
+.theme-section {
+    margin-bottom: 5px;
+}
+.section-divider {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin: 15px 0 10px;
+    padding-top: 5px;
+    font-weight: bold;
+    color: var(--config-text-color);
+    opacity: 0.7;
+}
+.theme-preview-container {
+    margin: 10px 0;
+    display: flex;
+    justify-content: center;
+}
+.theme-preview {
+    width: 90%;
+    height: 60px;
+    border-radius: var(--chat-border-radius);
+    overflow: hidden;
+    position: relative;
+    padding: 8px;
+    /* Allow inner elements to override font */
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    box-sizing: border-box;
+}
+
+/* Special handling for transparent theme to ensure text is visible */
+:root.transparent-theme .theme-preview, 
+.theme-preview.transparent-theme {
+    background-image: linear-gradient(45deg, #333 25%, transparent 25%), 
+                      linear-gradient(-45deg, #333 25%, transparent 25%), 
+                      linear-gradient(45deg, transparent 75%, #333 75%), 
+                      linear-gradient(-45deg, transparent 75%, #333 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.theme-preview .preview-username {
+    font-weight: bold;
+}
+
+.theme-preview .preview-timestamp {
+    opacity: 0.85;
+    font-size: 0.9em;
+}
+
+.theme-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.current-theme-display {
+    text-align: center;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    min-width: 150px;
+}
+.theme-navigation, .font-navigation {
+    display: flex;
+    justify-content: space-between;
+}
+.theme-nav-btn, .font-nav-btn {
+    margin-top: 0;
+    padding: 3px 10px;
+    flex: 1;
+    max-width: 70px;
+}
+.font-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.current-font-display {
+    text-align: center;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    min-width: 150px;
+    font-family: var(--config-font-family, 'Inter', 'Helvetica Neue', Arial, sans-serif);
+}
+.popup-setting {
+    display: none; /* Hidden by default, will be shown when popup mode is selected */
+}
+.window-only-setting {
+    display: flex; /* Shown by default, will be hidden when popup mode is selected */
+}
+

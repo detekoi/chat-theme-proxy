@@ -1,0 +1,115 @@
+/* Index page card */
+.card {
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    max-width: 500px;
+    margin: 100px auto;
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--card-text-color);
+}
+
+.card h1 {
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-md);
+}
+
+.card p {
+    margin-bottom: var(--spacing-lg);
+}
+
+.card .buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+}
+
+.card .button {
+    display: block;
+    padding: var(--spacing-md);
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.card .button:hover {
+    background-color: var(--primary-dark);
+}
+
+.card .button.secondary {
+    background-color: var(--secondary-color);
+    color: var(--button-secondary-text-color);
+}
+
+.card .button.secondary:hover {
+    background-color: #e0e0e0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .card .button.secondary:hover {
+        background-color: #404040;
+    }
+}
+
+/* Info boxes and notices */
+.settings-note {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #fffde7;
+    border-left: 3px solid #ffd600;
+    font-size: 14px;
+    color: #5f4339;
+}
+
+.obs-tips-box {
+    margin-top: 10px; 
+    padding: 8px; 
+    background-color: #f5f5f5; 
+    border-radius: 4px; 
+    font-size: 13px;
+}
+
+.obs-info-box {
+    margin-top: 10px; 
+    padding: 10px; 
+    background-color: #e8f5e9; 
+    border-left: 3px solid #43a047; 
+    font-size: 13px; 
+    border-radius: 4px;
+}
+
+.preview-info-box {
+    margin-top: 20px; 
+    text-align: center; 
+    padding: 10px; 
+    background-color: #f0f0f0; 
+    border-radius: 4px;
+}
+
+.preview-info-box p {
+    margin: 0; 
+    color: #666;
+}
+
+.accordion-header-custom {
+    cursor: pointer; 
+    background-color: #f1f3f4; 
+    padding: 10px; 
+    border-radius: 6px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+}
+
+.accordion-content-custom {
+    padding: 15px; 
+    border: 1px solid #e0e0e0; 
+    border-top: none; 
+    border-radius: 0 0 6px 6px;
+}
+

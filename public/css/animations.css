@@ -1,0 +1,120 @@
+/* Different animation classes */
+.popup-message.from-bottom {
+    animation-name: slideInUp, fadeOut;
+}
+
+.popup-message.from-top {
+    animation-name: slideInDown, fadeOut;
+}
+
+.popup-message.from-right {
+    animation-name: slideInRight, fadeOut;
+}
+
+.popup-message.from-left {
+    animation-name: slideInLeft, fadeOut;
+}
+
+/* Settings button hover area for popup mode */
+.popup-settings-area {
+    position: fixed; /* Fixed position instead of absolute */
+    top: 10px;
+    right: 10px;
+    width: 250px; /* Increase width to accommodate channel form */
+    pointer-events: auto; /* Make area clickable */
+    z-index: 9999; /* Higher z-index to ensure it's above everything */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+/* Settings button for popup mode */
+#popup-settings-btn {
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 8px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 10px 0 0;
+    opacity: 0 !important; /* Force hidden by default */
+    transition: all 0.3s ease;
+    z-index: 9999; /* Higher z-index to ensure it's clickable */
+    pointer-events: auto; /* Make button clickable */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); /* Add shadow for better visibility */
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+/* Increase visibility on hover */
+/* Show settings button in popup mode on hover */
+.popup-settings-area:hover #popup-settings-btn {
+    opacity: 0.7 !important;
+}
+
+/* Increase visibility when hovering on the button specifically */
+#popup-settings-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.7);
+    opacity: 1 !important;
+    transform: scale(1.1);
+}
+
+.popup-message .timestamp {
+    color: var(--timestamp-color);
+    font-size: 0.85em;
+    margin-right: 5px;
+}
+
+.popup-message .username {
+    color: var(--popup-username-color);
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.popup-message .message-text {
+    color: var(--popup-text-color);
+    word-break: break-word;
+}
+
+.popup-message .emote {
+    height: 1.5em;
+    vertical-align: middle;
+    margin: 0 2px;
+}
+
+/* Slide in animations for different directions */
+@keyframes slideInUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+

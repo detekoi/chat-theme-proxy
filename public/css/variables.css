@@ -1,0 +1,290 @@
+:root {
+    /* Default Theme (Dark) */
+    --chat-bg-color: rgba(18, 18, 18, 0.8);
+    --chat-border-color: #444444;
+    --chat-text-color: #efeff1;
+    --username-color: #9147ff; /* Default if no color is specified */
+    --timestamp-color: #adadb8;
+    --font-size: 14px;
+    --font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --chat-width: 100%;
+    --chat-height: 600px;
+    --chat-border-radius: 8px;
+    --override-username-colors: 0; /* 0 = use Twitch colors, 1 = override */
+    
+    /* Popup Theme (same as chat by default) */
+    --popup-bg-color: var(--chat-bg-color);
+    --popup-border-color: var(--chat-border-color);
+    --popup-text-color: var(--chat-text-color);
+    --popup-username-color: var(--username-color);
+    
+    /* Config Panel specific styles - not affected by chat themes */
+    --config-bg-color: rgba(35, 35, 35, 0.95);
+    --config-text-color: #ffffff;
+    --config-border-color: #9147ff;
+    --config-font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    
+    /* Base colors for light mode */
+    --primary-color: #9147ff;
+    --primary-dark: #772ce8;
+    --primary-light: #a970ff;
+    --secondary-color: #f0f0f0;
+    --text-color: #18181b;
+    --background-color: #f7f7f8;
+    --panel-color: #ffffff;
+    --border-color: #e5e5e5;
+    --success-color: #00b300;
+    --danger-color: #ff3e3e;
+    --warning-color: #ffb300;
+    --info-color: #3ea6ff;
+    --card-bg-color: #ffffff;
+    --card-text-color: #18181b;
+    --header-color: #18181b;
+    --link-color: #9147ff;
+    --button-text-color: #ffffff;
+    --button-secondary-text-color: #18181b;
+    
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    
+    /* Typography */
+    --font-size-sm: 0.875rem;
+    --font-size-md: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-xxl: 1.5rem;
+    
+    /* Borders & Shadows */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode for OS-level preferences */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-color: #efeff1;
+        --background-color: #18181b;
+        --panel-color: #1f1f23;
+        --border-color: #303030;
+        --secondary-color: #303030;
+        --card-bg-color: #1f1f23;
+        --card-text-color: #efeff1;
+        --header-color: #efeff1;
+        --link-color: #a970ff;
+        --button-secondary-text-color: #efeff1;
+        --info-bg-color: #1a2b32;
+        --success-bg-color: #1a2e20;
+        --warning-bg-color: #332917;
+        --neutral-bg-color: #292929;
+    }
+}
+
+/* Light Theme */
+:root.light-theme {
+    --chat-bg-color: rgba(250, 250, 250, 0.85);
+    --chat-border-color: #cccccc;
+    --chat-text-color: #1a1a1a;
+    --username-color: #6441a5;
+    --timestamp-color: #737373;
+    
+    /* Popup styles */
+    --popup-bg-color: rgba(250, 250, 250, 0.85);
+    --popup-border-color: #cccccc;
+    --popup-text-color: #1a1a1a;
+    --popup-username-color: #6441a5;
+}
+
+/* Natural Theme (renamed from Polar Bear Cafe) */
+:root.natural-theme {
+    --chat-bg-color: rgba(245, 242, 230, 0.85);
+    --chat-border-color: #7E6852;
+    --chat-text-color: #4E3629;
+    --username-color: #508D69;
+    --timestamp-color: #ACA192;
+    
+    /* Popup styles */
+    --popup-bg-color: rgba(245, 242, 230, 0.85);
+    --popup-border-color: #7E6852;
+    --popup-text-color: #4E3629;
+    --popup-username-color: #508D69;
+}
+
+/* Transparent Theme */
+:root.transparent-theme {
+    --chat-bg-color: rgba(0, 0, 0, 0);
+    --chat-border-color: transparent;
+    --chat-text-color: #ffffff;
+    --username-color: #ff9800;
+    --timestamp-color: rgba(255, 255, 255, 0.6);
+    
+    /* Popup styles - match window transparency */
+    --popup-bg-color: rgba(0, 0, 0, 0);
+    --popup-border-color: transparent;
+    --popup-text-color: #ffffff;
+    --popup-username-color: #ff9800;
+}
+
+/* Pink Theme */
+:root.pink-theme {
+    --chat-bg-color: rgba(255, 222, 236, 0.85);
+    --chat-border-color: #ff6bcb;
+    --chat-text-color: #8e2651;
+    --username-color: #b81670;
+    --timestamp-color: #d67bb2;
+    
+    /* Popup styles */
+    --popup-bg-color: rgba(255, 222, 236, 0.85);
+    --popup-border-color: #ff6bcb;
+    --popup-text-color: #8e2651;
+    --popup-username-color: #b81670;
+}
+
+/* Cyberpunk Theme */
+:root.cyberpunk-theme {
+    --chat-bg-color: rgba(12, 12, 40, 0.85);
+    --chat-border-color: #00ffb3;
+    --chat-text-color: #00ffea;
+    --username-color: #ff2e97;
+    --timestamp-color: #fffd88;
+    
+    /* Popup styles */
+    --popup-bg-color: rgba(12, 12, 40, 0.85);
+    --popup-border-color: #00ffb3;
+    --popup-text-color: #00ffea;
+    --popup-username-color: #ff2e97;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Apply config font to config panel elements specifically, but exclude the theme preview */
+#config-panel, 
+#config-panel *:not(.theme-preview *) {
+    font-family: var(--config-font-family);
+}
+
+/* Ensure theme preview uses the selected font, not the config font */
+.theme-preview * {
+    font-family: inherit;
+}
+
+/* Font Face Declarations */
+@font-face {
+    font-family: 'Press Start 2P';
+    src: url('assets/fonts/PressStart2P-Regular.txt.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Atkinson Hyperlegible';
+    src: url('assets/fonts/AtkinsonHyperlegible-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Atkinson Hyperlegible';
+    src: url('assets/fonts/AtkinsonHyperlegible-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Atkinson Hyperlegible';
+    src: url('assets/fonts/AtkinsonHyperlegible-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Atkinson Hyperlegible';
+    src: url('assets/fonts/AtkinsonHyperlegible-BoldItalic.ttf') format('truetype');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Jacquard';
+    src: url('assets/fonts/Jacquard12-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'MedievalSharp';
+    src: url('assets/fonts/MedievalSharp-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Tektur';
+    src: url('assets/fonts/Tektur-VariableFont_wdth,wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-stretch: 75% 100%;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'EB Garamond';
+    src: url('assets/fonts/EBGaramond-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'EB Garamond';
+    src: url('assets/fonts/EBGaramond-Italic-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: italic;
+    font-display: swap;
+}
+
+body {
+    background-color: var(--background-color);
+    overflow-x: hidden;
+    height: 100%;
+    font-family: var(--font-family);
+    font-size: var(--font-size-md);
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+/* Special case for chat.html which needs transparent background */
+body.chat-page {
+    background-color: transparent;
+    overflow: hidden;
+    color: var(--chat-text-color);
+}
+
+html {
+    height: 100%;
+    background-color: var(--background-color);
+}
+
+/* Special case for chat.html which needs transparent background */
+html.chat-page {
+    background-color: transparent;
+}
+

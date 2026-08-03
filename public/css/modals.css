@@ -1,0 +1,168 @@
+/* Popup mode styles */
+#popup-container {
+    position: fixed;
+    pointer-events: none; /* Allow clicking through for messages */
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    /* Fixed position at top-left, just like the chat window */
+    top: 0;
+    left: 0;
+    width: var(--chat-width); /* Match chat width */
+    height: 100vh; /* Full viewport height */
+    box-sizing: border-box;
+    font-size: var(--font-size); /* Ensure font size is applied at container level */
+}
+
+#popup-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    width: 100%;
+    /* Position based on popup direction, will be modified by JavaScript */
+    position: absolute;
+    /* Initial values - these will be adjusted by JavaScript */
+    bottom: auto;
+    top: auto;
+    left: auto;
+    right: auto;
+    max-height: calc(100vh - 20px);
+    overflow: hidden;
+}
+
+/* Enable pointer events on form elements when in popup mode */
+#popup-container #channel-form,
+#popup-container input,
+#popup-container button {
+    pointer-events: auto;
+}
+
+/* Style adjustments for channel form in popup mode */
+#popup-container #channel-form {
+    background-color: var(--popup-bg-color);
+    border: 2px solid var(--popup-border-color);
+    border-radius: var(--chat-border-radius);
+    padding: 10px;
+    margin-top: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 240px;
+}
+
+/* Initial state - popup container is hidden by default */
+#popup-container {
+    display: none;
+}
+
+.popup-message {
+    background-color: var(--popup-bg-color);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    padding: 8px 12px;
+    width: 100%; /* Use container width */
+    margin-bottom: 8px;
+    animation-duration: 0.3s, 0.3s;
+    animation-fill-mode: forwards, forwards;
+    animation-delay: 0s, 5s; /* Will be customized via JS */
+    opacity: 0; /* Start invisible */
+    font-family: var(--font-family);
+    /* Use proper border handling to support transparent borders */
+    border: 2px solid;
+    border-color: var(--popup-border-color);
+}
+
+/* Remove box shadow and border for transparent theme */
+:root.transparent-theme .popup-message {
+    box-shadow: none !important;
+    border: none !important;
+    background-color: transparent !important;
+}
+
+/* Modal styles */
+.modal-container {
+    display: none; 
+    position: fixed; 
+    z-index: 100; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    background-color: rgba(0,0,0,0.5); 
+    align-items: center; 
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white; 
+    padding: 20px; 
+    border-radius: 8px; 
+    width: 400px; 
+    max-width: 90%;
+}
+
+.modal-label {
+    display: block; 
+    margin-bottom: 5px;
+}
+
+.modal-description {
+    font-size: 12px; 
+    color: #666; 
+    margin-top: 4px;
+}
+
+/* Button hover states */
+.btn-secondary:hover {
+    background-color: #e0e0e0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .settings-note {
+        background-color: var(--warning-bg-color);
+        color: #eee8e5;
+        border-left-color: #ffd600;
+    }
+    
+    .obs-tips-box {
+        background-color: var(--neutral-bg-color);
+        color: #e0e0e0;
+    }
+    
+    .obs-info-box {
+        background-color: var(--success-bg-color);
+        color: #e0e0e0;
+        border-left-color: #43a047;
+    }
+    
+    .preview-info-box {
+        background-color: var(--neutral-bg-color);
+    }
+    
+    .preview-info-box p {
+        color: #aaaaaa;
+    }
+    
+    .accordion-header-custom {
+        background-color: #2a2a2a;
+        color: #e0e0e0;
+    }
+    
+    .accordion-content-custom {
+        border-color: #444444;
+        background-color: #232323;
+    }
+    
+    .modal-content {
+        background-color: #2a2a2a;
+        color: #e0e0e0;
+    }
+    
+    .modal-description {
+        color: #aaaaaa;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #404040;
+    }
+}
