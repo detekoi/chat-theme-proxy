@@ -2,7 +2,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getLibrary, addTheme, deleteTheme, setActiveTheme } = require('../services/themeLibraryService');
-const { uploadDataUrlToGCS, deleteImagesForTheme } = require('../services/storageService');
+const { uploadDataUrlToGCS, deleteImagesForTheme, copyToThemeBackground, isOwnBucketUrl } = require('../services/storageService');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
 
 const router = express.Router();
@@ -22,6 +22,10 @@ const ALLOWED_THEME_KEYS = new Set([
   'usernameColor', 'timestampColor', 'pronounBadgeColor', 'fontFamily', 'isGoogleFont',
   'googleFontFamily', 'borderRadius', 'borderRadiusValue', 'boxShadow', 'boxShadowValue',
   'textShadow', 'backgroundImage', 'bgImageOpacity', 'topFade', 'isGenerated',
+  // Marks a theme the user saved from their own settings rather than one the AI
+  // generated, so the carousel can badge it. Without it here, sanitizeTheme drops
+  // the flag and the badge disappears on the next sync.
+  'isUserPreset',
   // Variant bookkeeping: without these surviving the round-trip, a re-generated
   // prompt that produces the same theme_name gets no "(Variant N)" suffix, its
   // name collides with the stored copy, and the client's dedupe-by-name silently
@@ -36,6 +40,11 @@ function sanitizeTheme(theme) {
     if (ALLOWED_THEME_KEYS.has(key)) {
       sanitized[key] = theme[key];
     }
+  }
+  // Coerce to a real boolean so the stored flag can't be an arbitrary
+  // client-supplied payload riding in on a whitelisted key.
+  if ('isUserPreset' in sanitized) {
+    sanitized.isUserPreset = !!sanitized.isUserPreset;
   }
   return sanitized;
 }
@@ -82,6 +91,15 @@ router.post('/theme-library/:token/themes', tokenLimiter, jsonParser, validateTo
       const gcsUrl = await uploadDataUrlToGCS(theme.backgroundImage, themeId, `theme-backgrounds/${token}/`);
       if (gcsUrl) {
         theme.backgroundImage = gcsUrl;
+      }
+    } else if (isOwnBucketUrl(theme.backgroundImage)) {
+      // A saved preset can reference an image it doesn't own — a scene background
+      // (overwritten on the next scene save, deleted with the scene) or another
+      // theme's background (deleted with that theme). Give this theme its own copy
+      // so its image can't be pulled out from under it later.
+      const copied = await copyToThemeBackground(theme.backgroundImage, token, themeId);
+      if (copied !== undefined) {
+        theme.backgroundImage = copied;
       }
     }
 

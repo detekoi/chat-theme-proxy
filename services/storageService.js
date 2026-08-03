@@ -3,6 +3,32 @@ const { Storage } = require('@google-cloud/storage');
 
 const storage = new Storage();
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'chat-themer-backgrounds';
+const PUBLIC_URL_PREFIX = `https://storage.googleapis.com/${BUCKET_NAME}/`;
+
+/**
+ * True when `url` points at an object in our own bucket.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isOwnBucketUrl(url) {
+  return typeof url === 'string' && url.startsWith(PUBLIC_URL_PREFIX);
+}
+
+/**
+ * Extract the object path from one of our own public GCS URLs.
+ * @param {string} url
+ * @returns {string|null} The object path, or null if the URL isn't ours/is unsafe.
+ */
+function gcsObjectPathFromUrl(url) {
+  if (!isOwnBucketUrl(url)) return null;
+  try {
+    const rawPath = url.slice(PUBLIC_URL_PREFIX.length).split('?')[0];
+    const path = decodeURIComponent(rawPath);
+    return (!path || path.includes('..')) ? null : path;
+  } catch (err) {
+    return null;
+  }
+}
 
 /**
  * Uploads a base64 data URL to Google Cloud Storage and returns its public HTTPS URL.
@@ -108,8 +134,71 @@ async function deleteImagesForTheme(libraryToken, themeId) {
   }
 }
 
+/**
+ * Copy an existing image in our bucket into a theme's own canonical location.
+ *
+ * A saved preset can arrive carrying an image URL it does not own:
+ *   - a SCENE background (`backgrounds/<syncToken>.<ext>`), which is overwritten on
+ *     every scene save and deleted with the scene, or
+ *   - ANOTHER THEME's background (`theme-backgrounds/<token>/<otherId>.<ext>`),
+ *     which is deleted when that theme is deleted.
+ * Storing either URL as-is makes this theme's image silently vanish later, so the
+ * object is copied and the theme gets its own.
+ *
+ * The three return shapes are load-bearing:
+ *   undefined -> not our object; leave the caller's value untouched
+ *   null      -> source is definitively gone; store no image
+ *   string    -> the canonical URL (possibly unchanged, if already canonical)
+ * Distinguishing "missing" from "copy failed" keeps a transient GCS error from
+ * destroying a URL that still works.
+ *
+ * @param {string} sourceUrl - Current image URL.
+ * @param {string} libraryToken - Theme library token (owning namespace).
+ * @param {string} themeId - Server-assigned theme id.
+ * @returns {Promise<string|null|undefined>}
+ */
+async function copyToThemeBackground(sourceUrl, libraryToken, themeId) {
+  const srcPath = gcsObjectPathFromUrl(sourceUrl);
+  if (!srcPath) return undefined;
+
+  const extension = (srcPath.split('.').pop() || 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
+  const destinationPath = `theme-backgrounds/${libraryToken}/${themeId}.${extension}`;
+
+  // Already canonical: a re-POST of an existing theme must not self-copy.
+  if (destinationPath === srcPath) return sourceUrl;
+
+  try {
+    const bucket = storage.bucket(BUCKET_NAME);
+    const sourceFile = bucket.file(srcPath);
+
+    const [exists] = await sourceFile.exists();
+    if (!exists) {
+      console.warn(`[storageService] Source image no longer exists, dropping reference: ${srcPath}`);
+      return null;
+    }
+
+    await sourceFile.copy(bucket.file(destinationPath));
+
+    try {
+      await bucket.file(destinationPath).makePublic();
+    } catch (aclErr) {
+      console.log('[storageService] Note: Bucket uses uniform access policy.');
+    }
+
+    const publicUrl = `${PUBLIC_URL_PREFIX}${destinationPath}`;
+    console.log(`[storageService] Copied theme background ${srcPath} -> ${destinationPath}`);
+    return publicUrl;
+  } catch (err) {
+    // Keep the working (if shared) URL rather than wiping the user's image.
+    console.error('[storageService] Failed to copy theme background:', err.message);
+    return sourceUrl;
+  }
+}
+
 module.exports = {
   uploadDataUrlToGCS,
   deleteImagesForToken,
-  deleteImagesForTheme
+  deleteImagesForTheme,
+  copyToThemeBackground,
+  isOwnBucketUrl
 };
