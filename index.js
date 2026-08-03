@@ -75,15 +75,9 @@ app.use('/api', themeLibraryRoutes);
 app.use('/api', testRoutes);
 app.use('/', testRoutes); // Health check at root level
 
-// Handle root endpoint - serve test page in dev, health check in production
+// Handle root endpoint - return health check message
 app.get('/', (req, res) => {
-  if (isDevelopment) {
-    // In development, serve the test page
-    res.sendFile(path.join(__dirname, 'public', 'themer-tester.html'));
-  } else {
-    // In production, just return a simple message
-    res.status(200).send('Theme Generator API is running. Use /api/generate-theme endpoint for theme generation.');
-  }
+  res.status(200).send('Theme Generator API is running. Use /api/generate-theme endpoint for theme generation.');
 });
 
 // Main function to initialize fonts and start the server
