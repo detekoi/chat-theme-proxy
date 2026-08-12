@@ -17,7 +17,27 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  test:
+    name: Run Tests & Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
   deploy-cloud-run:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -55,6 +75,7 @@ jobs:
             --quiet
 
   deploy-badge-functions:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
