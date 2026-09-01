@@ -29,7 +29,8 @@ const ALLOWED_CONFIG_KEYS = new Set([
   'thirdPartyEmoteCacheGlobalTTL', 'thirdPartyEmoteCacheChannelTTL',
   'enlargeSingleEmotes', 'bgColorOpacity', 'bgImageOpacity', 'topFade', 'chromaKey',
   'googleFontFamily', 'bgImage', 'lastTwitchChannel', 'lastYouTubeTarget',
-  'showSuperChats', 'showMembershipEvents', 'showPlatformBadges', 'preChromaKeyOpacity'
+  'showSuperChats', 'showMembershipEvents', 'showPlatformBadges', 'preChromaKeyOpacity',
+  'hideCommands'
 ]);
 
 const MAX_SCENE_NAME_LENGTH = 200;
