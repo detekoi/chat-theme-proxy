@@ -1,7 +1,6 @@
 // routes/accountRoutes.js
 const express = require('express');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
-const { sanitizeSceneName } = require('../utils/accountRegistry');
 
 const MAX_SCENES_PER_REQUEST = 100;
 const MAX_ORDER_LENGTH = 100;
@@ -49,7 +48,7 @@ function createAccountRouter({
         if (typeof entry.token !== 'string') {
           return res.status(400).json({ error: 'Each scene entry must have a string "token" field.' });
         }
-        incoming.push({ token: entry.token.toLowerCase(), name: sanitizeSceneName(entry.name) });
+        incoming.push({ token: entry.token.toLowerCase(), name: entry.name });
       }
 
       const force = body.force === true;

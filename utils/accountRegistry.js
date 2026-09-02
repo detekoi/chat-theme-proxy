@@ -62,6 +62,7 @@ function applyLink(state, incoming, { force = false, now = Date.now() } = {}) {
   const seen = new Set();
 
   const items = Array.isArray(incoming) ? incoming : [];
+  let scenesCount = Object.keys(scenes).length;
 
   for (const item of items) {
     const rawToken = item && item.token;
@@ -94,13 +95,13 @@ function applyLink(state, incoming, { force = false, now = Date.now() } = {}) {
       continue;
     }
 
-    const scenesCount = Object.keys(scenes).length;
     if (scenesCount >= MAX_ACCOUNT_SCENES) {
       rejected.push({ token, reason: 'cap' });
       continue;
     }
 
     scenes[token] = { name: sanitizeSceneName(item.name), addedAt: now };
+    scenesCount++;
     linked.push(token);
   }
 
