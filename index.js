@@ -75,10 +75,12 @@ if (isDevelopment) {
 // Mount routes
 const sceneConfigRoutes = require('./routes/sceneConfigRoutes');
 const themeLibraryRoutes = require('./routes/themeLibraryRoutes');
+const accountRoutes = require('./routes/accountRoutes');
 app.use('/api', themeRoutes);
 app.use('/api', resourceRoutes);
 app.use('/api', sceneConfigRoutes);
 app.use('/api', themeLibraryRoutes);
+app.use('/api', accountRoutes);
 app.use('/api', testRoutes);
 app.use('/', testRoutes); // Health check at root level
 
@@ -94,16 +96,20 @@ async function main() {
     await fetchGoogleFonts();
 
     // Start the server only after fonts are loaded
-    const { GEMINI_API_KEY, RUNWARE_API_KEY } = require('./config/constants');
+    const { GEMINI_API_KEY, RUNWARE_API_KEY, TWITCH_CLIENT_ID } = require('./config/constants');
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Gemini API Key Loaded: ${!!GEMINI_API_KEY}`);
       console.log(`Runware API Key Loaded: ${!!RUNWARE_API_KEY}`);
+      console.log(`Twitch Client ID Loaded: ${!!TWITCH_CLIENT_ID}`);
       if (!GEMINI_API_KEY) {
         console.error("GEMINI_API_KEY is not set. The application will not be able to call the Gemini API.");
       }
       if (!RUNWARE_API_KEY) {
         console.error("RUNWARE_API_KEY is not set. Image generation will not be available.");
+      }
+      if (!TWITCH_CLIENT_ID) {
+        console.warn("TWITCH_CLIENT_ID is not set. Account routes will return 503.");
       }
     });
 

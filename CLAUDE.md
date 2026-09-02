@@ -7,6 +7,7 @@
 ## Environment Variables
 - `PORT` - Server port (default: 8091)
 - `GEMINI_API_KEY` - Required Gemini API key
+- `TWITCH_CLIENT_ID` - Twitch app client id; required for /api/account routes, which return 503 without it
 
 ## Architecture
 

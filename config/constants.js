@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 8091;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const RUNWARE_API_KEY = process.env.RUNWARE_API_KEY;
 const GOOGLE_FONTS_API_KEY = process.env.WEB_FONTS_API_KEY || process.env.WEP_FONTS_API_KEY;
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 
 // Enable verbose logging
 const VERBOSE_LOGGING = process.env.VERBOSE_LOGGING === 'true';
@@ -28,6 +29,7 @@ module.exports = {
   GEMINI_API_KEY,
   RUNWARE_API_KEY,
   GOOGLE_FONTS_API_KEY,
+  TWITCH_CLIENT_ID,
   VERBOSE_LOGGING,
   MAX_RETRY_ATTEMPTS,
   GENERATE_THEME_RATE_LIMIT,

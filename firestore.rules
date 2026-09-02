@@ -9,6 +9,9 @@ service cloud.firestore {
       allow get: if true;
       allow list, create, update, delete: if false;
     }
+    match /accounts/{userId} {
+      allow read, write: if false;
+    }
     match /{document=**} {
       allow read, write: if false;
     }
