@@ -75,7 +75,9 @@ function createRequireTwitchUser({
 
     const { status, data } = response || {};
 
-    if (status === 200 && data && data.client_id === clientId) {
+    // An app access token (client-credentials) for this same client id also
+    // validates 200, but carries no user_id/login; it must not become a user.
+    if (status === 200 && data && data.client_id === clientId && data.user_id) {
       const expiresInMs = (data.expires_in || 0) * 1000;
       const ttl = Math.min(cacheTtlMs, expiresInMs || cacheTtlMs);
 
@@ -91,6 +93,10 @@ function createRequireTwitchUser({
 
       req.twitchUser = { id: String(data.user_id), login: data.login };
       return next();
+    }
+
+    if (status === 200 && data && data.client_id === clientId) {
+      return res.status(401).json({ error: 'Token is not a Twitch user token.' });
     }
 
     if (status === 200) {

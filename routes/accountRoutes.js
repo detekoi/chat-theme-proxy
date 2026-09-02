@@ -97,7 +97,9 @@ function createAccountRouter({
       }
 
       const { id } = req.twitchUser;
-      const result = await accountService.setSceneOrder(id, sceneOrder);
+      // Stored tokens are lowercase (see POST/DELETE); match them case-insensitively.
+      const normalizedOrder = sceneOrder.map((t) => (typeof t === 'string' ? t.toLowerCase() : t));
+      const result = await accountService.setSceneOrder(id, normalizedOrder);
 
       return res.status(200).json({ success: true, sceneOrder: result.sceneOrder });
     } catch (err) {

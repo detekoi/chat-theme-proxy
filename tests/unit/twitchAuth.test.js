@@ -85,6 +85,24 @@ test('Bearer scheme with valid token and matching client_id calls next with req.
   assert.strictEqual(typeof req.twitchUser.id, 'string');
 });
 
+test('app access token (200, matching client_id, no user_id) -> 401, not cached', async () => {
+  const httpClient = makeHttpClient(() => ({
+    status: 200,
+    data: { client_id: CLIENT_ID, scopes: [], expires_in: 5000000 }
+  }));
+  const middleware = createRequireTwitchUser({ httpClient, clientId: CLIENT_ID });
+  const req = makeReq('Bearer apptoken');
+  const res = makeRes();
+  let nextCalled = false;
+
+  await middleware(req, res, () => { nextCalled = true; });
+
+  assert.strictEqual(nextCalled, false);
+  assert.strictEqual(res.statusCode, 401);
+  assert.strictEqual(req.twitchUser, undefined);
+  assert.strictEqual(middleware.cache.size, 0);
+});
+
 test('OAuth scheme is also accepted', async () => {
   const httpClient = makeHttpClient(() => ({
     status: 200,

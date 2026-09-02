@@ -21,6 +21,23 @@ function chunk(arr, size) {
 }
 
 /**
+ * Firestore normally hands back a Timestamp, but tolerate a Date, number or
+ * ISO string (seeded data, tests) instead of throwing on `.toDate()`.
+ * @param {*} value
+ * @returns {string|null}
+ */
+function toIsoString(value) {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') return value.toDate().toISOString();
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'number' || typeof value === 'string') {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return null;
+}
+
+/**
  * Builds a registry state object ({ scenes, sceneOrder, removed }) from a
  * possibly-missing Firestore account doc snapshot.
  * @param {FirebaseFirestore.DocumentSnapshot} docSnap
@@ -114,7 +131,7 @@ function createAccountService({ firestore = new Firestore(), now = Date.now } = 
       const liveNameUsable = liveName && !/^scene[_-]/i.test(liveName) && liveName !== 'default';
       const name = registryEntry.name || (liveNameUsable ? liveName : '') || 'Untitled Scene';
 
-      const updatedAt = exists && sceneData.updatedAt ? sceneData.updatedAt.toDate().toISOString() : null;
+      const updatedAt = exists ? toIsoString(sceneData.updatedAt) : null;
 
       let config = exists ? (sceneData.config || null) : null;
       if (config && typeof config.bgImage === 'string' && config.bgImage.startsWith('data:')) {

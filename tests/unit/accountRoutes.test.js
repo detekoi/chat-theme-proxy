@@ -232,6 +232,22 @@ test('PUT /api/account/scene-order returns service order', async () => {
   });
 });
 
+test('PUT /api/account/scene-order lowercases tokens before reaching the service', async () => {
+  const service = createFakeService();
+  const app = createTestApp({ accountService: service });
+
+  await withServer(app, async (port) => {
+    const res = await fetch(`http://localhost:${port}/api/account/scene-order`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sceneOrder: ['123E4567-E89B-12D3-A456-426614174000', 'abc'] })
+    });
+    assert.strictEqual(res.status, 200);
+    const call = service.calls.find((c) => c.method === 'setSceneOrder');
+    assert.deepStrictEqual(call.order, ['123e4567-e89b-12d3-a456-426614174000', 'abc']);
+  });
+});
+
 test('auth middleware that responds 401 stops the handler', async () => {
   const service = createFakeService();
   const app = createTestApp({ accountService: service, requireTwitchUser: unauthorizedAuth });
