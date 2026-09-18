@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   SERVICE_NAME: theme-proxy
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
