@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const VALIDATE_URL = 'https://id.twitch.tv/oauth2/validate';
 
-const AUTH_HEADER_REGEX = /^(Bearer|OAuth)\s+(.+)$/i;
+const AUTH_HEADER_REGEX = /^(Bearer|OAuth)[ \t]+(\S+)$/i;
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
