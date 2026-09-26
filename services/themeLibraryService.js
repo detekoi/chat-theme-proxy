@@ -9,6 +9,18 @@ const TWELVE_MONTHS_MS = 365 * 24 * 60 * 60 * 1000;
 // once this cap is exceeded (list is stored newest first).
 const MAX_LIBRARY_THEMES = 50;
 
+// Firestore rejects documents over 1 MiB. Libraries saved before images were
+// always moved to Cloud Storage can hold inline data URLs and sit near that
+// limit; refuse the add with a clear error instead of a failed write.
+const MAX_LIBRARY_BYTES = 950 * 1024;
+
+class LibraryFullError extends Error {
+  constructor() {
+    super('Theme library is too large to add another theme.');
+    this.name = 'LibraryFullError';
+  }
+}
+
 /**
  * Gets a user's theme library from Firestore.
  * @param {string} token - The theme library token (UUID).
@@ -67,6 +79,10 @@ async function addTheme(token, theme) {
     // Trim to cap, keeping the newest entries.
     if (themes.length > MAX_LIBRARY_THEMES) {
       themes = themes.slice(0, MAX_LIBRARY_THEMES);
+    }
+
+    if (Buffer.byteLength(JSON.stringify(themes), 'utf8') > MAX_LIBRARY_BYTES) {
+      throw new LibraryFullError();
     }
 
     const payload = {
@@ -151,5 +167,7 @@ module.exports = {
   addTheme,
   deleteTheme,
   setActiveTheme,
+  LibraryFullError,
+  MAX_LIBRARY_BYTES,
   MAX_LIBRARY_THEMES
 };

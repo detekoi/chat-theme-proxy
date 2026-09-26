@@ -1,9 +1,9 @@
 // routes/themeLibraryRoutes.js
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { getLibrary, addTheme, deleteTheme, setActiveTheme } = require('../services/themeLibraryService');
+const { getLibrary, addTheme, deleteTheme, setActiveTheme, LibraryFullError } = require('../services/themeLibraryService');
 const { uploadDataUrlToGCS, deleteImagesForTheme, copyToThemeBackground } = require('../services/storageService');
-const { isOwnBucketUrl, sanitizeImageUrl } = require('../utils/imageValidation');
+const { isImageDataUrl, isOwnBucketUrl, sanitizeImageUrl } = require('../utils/imageValidation');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
 
 const router = express.Router();
@@ -95,11 +95,12 @@ router.post('/theme-library/:token/themes', tokenLimiter, jsonParser, validateTo
     theme.id = themeId;
 
     // Automatically convert base64 backgroundImage data URLs to Cloud Storage public HTTPS URLs
-    if (theme.backgroundImage && typeof theme.backgroundImage === 'string' && theme.backgroundImage.startsWith('data:image/')) {
-      const gcsUrl = await uploadDataUrlToGCS(theme.backgroundImage, themeId, `theme-backgrounds/${token}/`);
-      if (gcsUrl) {
-        theme.backgroundImage = gcsUrl;
-      }
+    if (isImageDataUrl(theme.backgroundImage)) {
+      // Never keep the data URL itself: up to 50 themes share one Firestore doc
+      // (1 MiB limit), so a couple of inline images would make every later add
+      // fail. If the upload fails the theme is stored without its image, which
+      // the client reports as imageDropped.
+      theme.backgroundImage = await uploadDataUrlToGCS(theme.backgroundImage, themeId, `theme-backgrounds/${token}/`);
     } else if (isOwnBucketUrl(theme.backgroundImage)) {
       // A saved preset can reference an image it doesn't own — a scene background
       // (overwritten on the next scene save, deleted with the scene) or another
@@ -136,6 +137,9 @@ router.post('/theme-library/:token/themes', tokenLimiter, jsonParser, validateTo
 
     return res.status(200).json({ success: true, theme: savedTheme });
   } catch (err) {
+    if (err instanceof LibraryFullError) {
+      return res.status(413).json({ error: 'Theme library is full. Delete a theme with a background image and try again.' });
+    }
     console.error('[themeLibraryRoutes] Error adding theme:', err.message);
     return res.status(500).json({ error: 'Failed to add theme to library.' });
   }

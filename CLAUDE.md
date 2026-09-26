@@ -8,6 +8,7 @@
 - `PORT` - Server port (default: 8091)
 - `GEMINI_API_KEY` - Required Gemini API key
 - `TWITCH_CLIENT_ID` - Twitch app client id; required for /api/account routes, which return 503 without it
+- `GCS_BUCKET_NAME` - Background image bucket (default: `chat-themer-backgrounds`). Keep the default for any deployment the overlay uses: wildcat-home's `config-guard.js` only loads images from that bucket
 
 ## Architecture
 
@@ -22,7 +23,7 @@ Structured output with JSON schema ensures reliable parsing. Reduced retries fro
 Three HTTP Cloud Functions in `functions/badge-proxy/` that proxy Twitch Badge API calls:
 - **getGlobalBadges** - Fetches and caches global Twitch badges (12h TTL)
 - **getChannelBadges** - Fetches and caches channel-specific badges (1h TTL)
-- **refreshGlobalCache** - Admin endpoint to force-refresh global badge cache (requires auth)
+- **refreshGlobalCache** - Admin endpoint to force-refresh global badge cache (requires the `x-internal-refresh-token` header matching the `INTERNAL_REFRESH_TOKEN` secret)
 
 All badge data is cached in Firestore (`twitchBadgeCache` collection). Twitch app access tokens are also cached in Firestore with auto-refresh.
 

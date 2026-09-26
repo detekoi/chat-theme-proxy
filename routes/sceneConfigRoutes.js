@@ -4,6 +4,7 @@ const { upsertSceneConfig, getSceneConfig, deleteSceneConfig } = require('../ser
 const { uploadDataUrlToGCS, deleteImagesForToken } = require('../services/storageService');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
 const { sanitizeSceneConfigValues } = require('../utils/configValidation');
+const { isImageDataUrl } = require('../utils/imageValidation');
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ const ALLOWED_CONFIG_KEYS = new Set([
   'thirdPartyEmoteCacheGlobalTTL', 'thirdPartyEmoteCacheChannelTTL',
   'enlargeSingleEmotes', 'bgColorOpacity', 'bgImageOpacity', 'topFade', 'chromaKey',
   'googleFontFamily', 'bgImage', 'lastTwitchChannel', 'lastYouTubeTarget',
-  'showSuperChats', 'showMembershipEvents', 'showPlatformBadges', 'preChromaKeyOpacity',
+  'showSuperChats', 'showMembershipEvents', 'showPlatformBadges', 'preChromaKeyOpacity', 'preChromaKeyColor',
   'hideCommands'
 ]);
 
@@ -61,7 +62,7 @@ router.put('/scene-config/:token', sceneConfigLimiter, jsonParser, validateToken
     body.config = sanitizeConfig(body.config);
 
     // Automatically convert base64 bgImage data URLs to Cloud Storage public HTTPS URLs
-    if (body.config.bgImage && typeof body.config.bgImage === 'string' && body.config.bgImage.startsWith('data:image/')) {
+    if (isImageDataUrl(body.config.bgImage)) {
       const gcsUrl = await uploadDataUrlToGCS(body.config.bgImage, token);
       if (gcsUrl) {
         body.config.bgImage = gcsUrl;

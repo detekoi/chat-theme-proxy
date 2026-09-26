@@ -4,6 +4,9 @@
 // Browser Source, so the only values stored are ones the proxy itself vouches for:
 // raster image data URLs whose bytes match their type, or objects in our own bucket.
 
+// The overlay (wildcat-home config-guard.js) only loads images from
+// chat-themer-backgrounds, so GCS_BUCKET_NAME must not point anywhere else in a
+// deployment the overlay talks to.
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'chat-themer-backgrounds';
 const PUBLIC_URL_PREFIX = `https://storage.googleapis.com/${BUCKET_NAME}/`;
 
@@ -81,6 +84,16 @@ function parseImageDataUrl(dataUrl) {
 }
 
 /**
+ * True for anything that claims to be an image data URL, in any letter case,
+ * so it goes through upload/validation rather than being taken for a plain URL.
+ * @param {*} value
+ * @returns {boolean}
+ */
+function isImageDataUrl(value) {
+  return typeof value === 'string' && /^data:image\//i.test(value);
+}
+
+/**
  * Extract the object path from one of our own public GCS URLs.
  * The URL must already be in canonical form, so `..` segments, percent-encoding,
  * query strings and fragments are all rejected rather than normalised.
@@ -121,7 +134,7 @@ function isOwnBucketUrl(url) {
 function sanitizeImageUrl(value) {
   if (value === null || value === undefined || value === '' || value === 'none') return value ?? null;
   if (typeof value !== 'string') return null;
-  if (value.startsWith('data:')) return sniffImageDataUrl(value) ? value : null;
+  if (/^data:/i.test(value)) return sniffImageDataUrl(value) ? value : null;
   return isOwnBucketUrl(value) ? value : null;
 }
 
@@ -131,6 +144,7 @@ module.exports = {
   ALLOWED_IMAGE_TYPES,
   sniffImageType,
   sniffImageDataUrl,
+  isImageDataUrl,
   parseImageDataUrl,
   ownBucketObjectPath,
   isOwnBucketUrl,
