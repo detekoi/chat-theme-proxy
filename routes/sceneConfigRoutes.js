@@ -16,15 +16,16 @@ const jsonParser = express.json({ limit: '1mb' });
 // Every key the overlay reads: ConfigManager.getDefaultConfig() plus the runtime-only
 // keys written by settings-panel-manager (googleFontFamily, bgImage, channel targets,
 // YouTube toggles, preChromaKeyOpacity). Unknown keys are dropped so the endpoint
-// can't be used as an arbitrary public JSON store.
+// can't be used as an arbitrary public JSON store. The badge/cheermote endpoint
+// keys are deliberately absent (see REMOVED_CONFIG_KEYS in utils/configValidation).
 const ALLOWED_CONFIG_KEYS = new Set([
   'configVersion', 'chatMode', 'bgColor', 'borderColor', 'textColor', 'usernameColor',
   'fontSize', 'fontFamily', 'fontWeight', 'chatWidth', 'chatHeight', 'maxMessages',
   'showTimestamps', 'overrideUsernameColors', 'borderRadius', 'boxShadow', 'textShadow',
   'popup', 'theme', 'lastChannel', 'showBadges', 'showPronouns', 'timestampColor',
-  'pronounBadgeColor', 'badgeEndpointUrlGlobal', 'badgeEndpointUrlChannel',
+  'pronounBadgeColor',
   'badgeCacheGlobalTTL', 'badgeCacheChannelTTL', 'badgeFallbackHide',
-  'cheermoteEndpointUrl', 'cheermoteCacheTTL', 'thirdPartyEmotes',
+  'cheermoteCacheTTL', 'thirdPartyEmotes',
   'thirdPartyChannelEmotes', 'thirdPartyFilter7tvTwitchDisallowed',
   'thirdPartyFilter7tvSexual', 'thirdPartyFilter7tvEpilepsy', 'thirdPartyFilter7tvEdgy',
   'thirdPartyEmoteCacheGlobalTTL', 'thirdPartyEmoteCacheChannelTTL',

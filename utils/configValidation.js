@@ -1,30 +1,30 @@
 // utils/configValidation.js
 const { sanitizeImageUrl } = require('./imageValidation');
 
-// The overlay fetches badge and cheermote JSON from these URLs and loads every
-// image URL in the response inside OBS. A scene token is the only credential for
-// writing a scene config, so a token holder must not be able to point a streamer's
-// overlay at their own server: these keys are always stored as our own endpoints.
-const PINNED_ENDPOINTS = {
-  badgeEndpointUrlGlobal: 'https://us-central1-chat-themer.cloudfunctions.net/getGlobalBadges',
-  badgeEndpointUrlChannel: 'https://us-central1-chat-themer.cloudfunctions.net/getChannelBadges',
-  cheermoteEndpointUrl: 'https://us-central1-chat-themer.cloudfunctions.net/getCheermotes'
-};
+// Keys the overlay used to read its badge and cheermote endpoints from. The
+// overlay now uses fixed endpoints, and a scene token is the only credential for
+// writing a scene config, so these must never be stored: a token holder could
+// otherwise point older overlay builds at their own server, whose image URLs
+// would then be loaded inside OBS. Saves delete any stored copies
+// (sceneConfigService) and reads strip them.
+const REMOVED_CONFIG_KEYS = Object.freeze([
+  'badgeEndpointUrlGlobal',
+  'badgeEndpointUrlChannel',
+  'cheermoteEndpointUrl'
+]);
 
 /**
  * Constrain the values of a key-sanitized scene config that decide what the
- * overlay loads: endpoint URLs are pinned and bgImage is limited to image data
- * URLs or our own bucket. Mutates and returns `config`.
- *
- * Endpoints are written even when the client omitted them: the Firestore write
- * merges into the stored config, so leaving a key out would keep whatever value
- * an earlier write put there.
+ * overlay loads: removed endpoint keys are dropped and bgImage is limited to
+ * image data URLs or our own bucket. Mutates and returns `config`.
  *
  * @param {Object} config
  * @returns {Object}
  */
 function sanitizeSceneConfigValues(config) {
-  Object.assign(config, PINNED_ENDPOINTS);
+  for (const key of REMOVED_CONFIG_KEYS) {
+    delete config[key];
+  }
   if ('bgImage' in config) {
     config.bgImage = sanitizeImageUrl(config.bgImage);
   }
@@ -32,6 +32,6 @@ function sanitizeSceneConfigValues(config) {
 }
 
 module.exports = {
-  PINNED_ENDPOINTS,
+  REMOVED_CONFIG_KEYS,
   sanitizeSceneConfigValues
 };

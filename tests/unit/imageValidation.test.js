@@ -9,7 +9,9 @@ const {
   isOwnBucketUrl,
   sanitizeImageUrl
 } = require('../../utils/imageValidation');
-const { PINNED_ENDPOINTS, sanitizeSceneConfigValues } = require('../../utils/configValidation');
+const { REMOVED_CONFIG_KEYS, sanitizeSceneConfigValues } = require('../../utils/configValidation');
+const { buildConfigWrite } = require('../../services/sceneConfigService');
+const { FieldValue } = require('@google-cloud/firestore');
 const { uploadDataUrlToGCS } = require('../../services/storageService');
 
 const PAD = Buffer.alloc(16);
@@ -103,21 +105,26 @@ test('sanitizeImageUrl keeps empty values, data URLs and our bucket, and drops t
   assert.strictEqual(sanitizeImageUrl({ url: OWN_URL }), null);
 });
 
-test('sanitizeSceneConfigValues pins endpoints, even when omitted, and cleans bgImage', () => {
+test('sanitizeSceneConfigValues drops the removed endpoint keys and cleans bgImage', () => {
   const config = sanitizeSceneConfigValues({
     badgeEndpointUrlGlobal: 'https://evil.example/badges',
+    badgeEndpointUrlChannel: 'https://evil.example/channel',
     cheermoteEndpointUrl: 'https://evil.example/cheermotes',
     bgImage: 'https://evil.example/bg.png',
     textColor: '#ffffff'
   });
-  assert.strictEqual(config.badgeEndpointUrlGlobal, PINNED_ENDPOINTS.badgeEndpointUrlGlobal);
-  assert.strictEqual(config.badgeEndpointUrlChannel, PINNED_ENDPOINTS.badgeEndpointUrlChannel);
-  assert.strictEqual(config.cheermoteEndpointUrl, PINNED_ENDPOINTS.cheermoteEndpointUrl);
-  assert.strictEqual(config.bgImage, null);
-  assert.strictEqual(config.textColor, '#ffffff');
+  assert.deepStrictEqual(config, { bgImage: null, textColor: '#ffffff' });
 
   assert.strictEqual(sanitizeSceneConfigValues({ bgImage: OWN_URL }).bgImage, OWN_URL);
-  assert.ok(!('bgImage' in sanitizeSceneConfigValues({})));
+  assert.deepStrictEqual(sanitizeSceneConfigValues({}), {});
+});
+
+test('buildConfigWrite deletes stored copies of the removed endpoint keys', () => {
+  const write = buildConfigWrite({ textColor: '#ffffff' });
+  assert.strictEqual(write.textColor, '#ffffff');
+  for (const key of REMOVED_CONFIG_KEYS) {
+    assert.ok(write[key].isEqual(FieldValue.delete()), `${key} should be a delete sentinel`);
+  }
 });
 
 test('uploadDataUrlToGCS refuses SVG and mismatched content before touching storage', async () => {
