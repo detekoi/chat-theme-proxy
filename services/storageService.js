@@ -4,8 +4,7 @@ const {
   BUCKET_NAME,
   PUBLIC_URL_PREFIX,
   parseImageDataUrl,
-  ownBucketObjectPath,
-  isOwnBucketUrl
+  ownBucketObjectPath
 } = require('../utils/imageValidation');
 
 const storage = new Storage();
@@ -166,6 +165,5 @@ module.exports = {
   uploadDataUrlToGCS,
   deleteImagesForToken,
   deleteImagesForTheme,
-  copyToThemeBackground,
-  isOwnBucketUrl
+  copyToThemeBackground
 };

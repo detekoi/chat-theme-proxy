@@ -3,6 +3,7 @@ const assert = require('node:assert');
 const {
   PUBLIC_URL_PREFIX,
   sniffImageType,
+  sniffImageDataUrl,
   parseImageDataUrl,
   ownBucketObjectPath,
   isOwnBucketUrl,
@@ -38,6 +39,20 @@ test('parseImageDataUrl accepts raster images and takes the type from the bytes'
   assert.strictEqual(parseImageDataUrl(dataUrl('image/jpg', JPEG_BYTES)).contentType, 'image/jpeg');
   // Declared PNG but actually a JPEG: stored as what it really is.
   assert.strictEqual(parseImageDataUrl(dataUrl('image/png', JPEG_BYTES)).contentType, 'image/jpeg');
+});
+
+test('image data URLs are matched case-insensitively on the MIME type', () => {
+  assert.strictEqual(parseImageDataUrl(dataUrl('IMAGE/PNG', PNG_BYTES)).contentType, 'image/png');
+  assert.strictEqual(parseImageDataUrl(dataUrl('Image/JPG', JPEG_BYTES)).contentType, 'image/jpeg');
+  assert.strictEqual(parseImageDataUrl(dataUrl('IMAGE/SVG+XML', SVG_BYTES)), null);
+});
+
+test('sniffImageDataUrl checks the header only; parseImageDataUrl decodes the full payload', () => {
+  const body = Buffer.concat([PNG_BYTES, Buffer.alloc(64 * 1024, 7)]);
+  const url = dataUrl('image/png', body);
+  assert.deepStrictEqual(sniffImageDataUrl(url), { contentType: 'image/png', base64: body.toString('base64') });
+  assert.ok(parseImageDataUrl(url).buffer.equals(body));
+  assert.strictEqual(sniffImageDataUrl(dataUrl('image/png', SVG_BYTES)), null);
 });
 
 test('parseImageDataUrl rejects SVG, disguised markup and malformed data URLs', () => {

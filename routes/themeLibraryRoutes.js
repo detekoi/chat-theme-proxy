@@ -2,8 +2,8 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getLibrary, addTheme, deleteTheme, setActiveTheme } = require('../services/themeLibraryService');
-const { uploadDataUrlToGCS, deleteImagesForTheme, copyToThemeBackground, isOwnBucketUrl } = require('../services/storageService');
-const { sanitizeImageUrl } = require('../utils/imageValidation');
+const { uploadDataUrlToGCS, deleteImagesForTheme, copyToThemeBackground } = require('../services/storageService');
+const { isOwnBucketUrl, sanitizeImageUrl } = require('../utils/imageValidation');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
 
 const router = express.Router();

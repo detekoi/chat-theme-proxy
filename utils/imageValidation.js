@@ -16,7 +16,13 @@ const ALLOWED_IMAGE_TYPES = {
   'image/webp': 'webp'
 };
 
-const DATA_URL_REGEX = /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/]+={0,2})$/;
+// MIME types are case-insensitive (RFC 2045); the declared type is lowercased
+// before it's checked.
+const DATA_URL_REGEX = /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/]+={0,2})$/i;
+
+// 24 base64 characters decode to 18 bytes: enough for sniffImageType without
+// decoding the whole (up to ~900 KB) payload just to read its header.
+const SNIFF_BASE64_CHARS = 24;
 
 // Object paths we write are UUIDs plus an extension, under backgrounds/ or
 // theme-backgrounds/<token>/. No '%', quotes or backslashes, so a value can't
@@ -39,25 +45,39 @@ function sniffImageType(buffer) {
 }
 
 /**
- * Parse a base64 image data URL, accepting only PNG, JPEG, GIF and WebP whose
- * bytes match an allowed type. The returned contentType comes from the bytes,
- * not the declared type.
+ * Check a base64 image data URL without decoding the whole payload: only PNG,
+ * JPEG, GIF and WebP are accepted, and the leading bytes must be one of those.
+ * The returned contentType comes from the bytes, not the declared type.
  * @param {string} dataUrl
- * @returns {{contentType: string, extension: string, buffer: Buffer}|null}
+ * @returns {{contentType: string, base64: string}|null}
  */
-function parseImageDataUrl(dataUrl) {
+function sniffImageDataUrl(dataUrl) {
   if (typeof dataUrl !== 'string') return null;
   const matches = dataUrl.match(DATA_URL_REGEX);
   if (!matches) return null;
 
-  const declaredType = matches[1] === 'image/jpg' ? 'image/jpeg' : matches[1];
+  const declared = matches[1].toLowerCase();
+  const declaredType = declared === 'image/jpg' ? 'image/jpeg' : declared;
   if (!ALLOWED_IMAGE_TYPES[declaredType]) return null;
 
-  const buffer = Buffer.from(matches[2], 'base64');
-  const contentType = sniffImageType(buffer);
+  const base64 = matches[2];
+  const contentType = sniffImageType(Buffer.from(base64.slice(0, SNIFF_BASE64_CHARS), 'base64'));
   if (!contentType) return null;
 
-  return { contentType, extension: ALLOWED_IMAGE_TYPES[contentType], buffer };
+  return { contentType, base64 };
+}
+
+/**
+ * Parse a base64 image data URL for upload (see sniffImageDataUrl for what is
+ * accepted), decoding the full payload.
+ * @param {string} dataUrl
+ * @returns {{contentType: string, extension: string, buffer: Buffer}|null}
+ */
+function parseImageDataUrl(dataUrl) {
+  const image = sniffImageDataUrl(dataUrl);
+  if (!image) return null;
+  const { contentType, base64 } = image;
+  return { contentType, extension: ALLOWED_IMAGE_TYPES[contentType], buffer: Buffer.from(base64, 'base64') };
 }
 
 /**
@@ -101,7 +121,7 @@ function isOwnBucketUrl(url) {
 function sanitizeImageUrl(value) {
   if (value === null || value === undefined || value === '' || value === 'none') return value ?? null;
   if (typeof value !== 'string') return null;
-  if (value.startsWith('data:')) return parseImageDataUrl(value) ? value : null;
+  if (value.startsWith('data:')) return sniffImageDataUrl(value) ? value : null;
   return isOwnBucketUrl(value) ? value : null;
 }
 
@@ -110,6 +130,7 @@ module.exports = {
   PUBLIC_URL_PREFIX,
   ALLOWED_IMAGE_TYPES,
   sniffImageType,
+  sniffImageDataUrl,
   parseImageDataUrl,
   ownBucketObjectPath,
   isOwnBucketUrl,
