@@ -1,34 +1,14 @@
 // services/storageService.js
 const { Storage } = require('@google-cloud/storage');
+const {
+  BUCKET_NAME,
+  PUBLIC_URL_PREFIX,
+  parseImageDataUrl,
+  ownBucketObjectPath,
+  isOwnBucketUrl
+} = require('../utils/imageValidation');
 
 const storage = new Storage();
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'chat-themer-backgrounds';
-const PUBLIC_URL_PREFIX = `https://storage.googleapis.com/${BUCKET_NAME}/`;
-
-/**
- * True when `url` points at an object in our own bucket.
- * @param {string} url
- * @returns {boolean}
- */
-function isOwnBucketUrl(url) {
-  return typeof url === 'string' && url.startsWith(PUBLIC_URL_PREFIX);
-}
-
-/**
- * Extract the object path from one of our own public GCS URLs.
- * @param {string} url
- * @returns {string|null} The object path, or null if the URL isn't ours/is unsafe.
- */
-function gcsObjectPathFromUrl(url) {
-  if (!isOwnBucketUrl(url)) return null;
-  try {
-    const rawPath = url.slice(PUBLIC_URL_PREFIX.length).split('?')[0];
-    const path = decodeURIComponent(rawPath);
-    return (!path || path.includes('..')) ? null : path;
-  } catch (err) {
-    return null;
-  }
-}
 
 /**
  * Uploads a base64 data URL to Google Cloud Storage and returns its public HTTPS URL.
@@ -38,31 +18,18 @@ function gcsObjectPathFromUrl(url) {
  * @returns {Promise<string|null>} The public GCS URL or null if upload fails
  */
 async function uploadDataUrlToGCS(dataUrl, filename, destinationPrefix = 'backgrounds/') {
-  if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+  // Only PNG, JPEG, GIF and WebP whose bytes match the type are stored; the
+  // content type written to GCS comes from the bytes, never from the client.
+  const image = parseImageDataUrl(dataUrl);
+  if (!image) {
+    if (typeof dataUrl === 'string' && dataUrl.startsWith('data:')) {
+      console.warn('[storageService] Rejected image data URL (unsupported type or content mismatch).');
+    }
     return null;
   }
 
   try {
-    const matches = dataUrl.match(/^data:(image\/[a-zA-Z0-9+\-+.]+);base64,(.+)$/);
-    if (!matches || matches.length !== 3) {
-      console.warn('[storageService] Invalid data URL format.');
-      return null;
-    }
-
-    const contentType = matches[1];
-    const base64Data = matches[2];
-    const buffer = Buffer.from(base64Data, 'base64');
-
-    const MIME_EXTENSION_MAP = {
-      'image/png': 'png',
-      'image/jpeg': 'jpg',
-      'image/jpg': 'jpg',
-      'image/gif': 'gif',
-      'image/webp': 'webp',
-      'image/svg+xml': 'svg'
-    };
-
-    const extension = MIME_EXTENSION_MAP[contentType] || contentType.split('/')[1]?.replace(/[^a-z0-9]/gi, '') || 'png';
+    const { contentType, extension, buffer } = image;
     const destinationPath = `${destinationPrefix}${filename.includes('.') ? filename : `${filename}.${extension}`}`;
 
     const bucket = storage.bucket(BUCKET_NAME);
@@ -158,7 +125,7 @@ async function deleteImagesForTheme(libraryToken, themeId) {
  * @returns {Promise<string|null|undefined>}
  */
 async function copyToThemeBackground(sourceUrl, libraryToken, themeId) {
-  const srcPath = gcsObjectPathFromUrl(sourceUrl);
+  const srcPath = ownBucketObjectPath(sourceUrl);
   if (!srcPath) return undefined;
 
   const extension = (srcPath.split('.').pop() || 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';

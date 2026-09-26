@@ -292,6 +292,11 @@ functions.http('getChannelBadges', async (req, res) => {
         return res.status(400).send('Missing required query parameter: broadcaster_id');
     }
 
+    // Validate broadcaster_id is numeric-only to prevent Firestore path injection
+    if (!/^\d+$/.test(broadcasterId)) {
+        return res.status(400).send('Invalid broadcaster_id.');
+    }
+
     const cacheDocId = `${CHANNEL_BADGES_DOC_ID_PREFIX}${broadcasterId}`;
 
     try {

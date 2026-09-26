@@ -3,6 +3,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getLibrary, addTheme, deleteTheme, setActiveTheme } = require('../services/themeLibraryService');
 const { uploadDataUrlToGCS, deleteImagesForTheme, copyToThemeBackground, isOwnBucketUrl } = require('../services/storageService');
+const { sanitizeImageUrl } = require('../utils/imageValidation');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
 
 const router = express.Router();
@@ -57,7 +58,14 @@ router.get('/theme-library/:token', validateToken, async (req, res) => {
 
     // First-run clients need no special branch: an unknown token simply
     // resolves to an empty theme list rather than a 404.
-    return res.status(200).json({ themes: library.themes });
+    // Themes saved before value validation existed may still carry external image URLs.
+    const themes = library.themes.map(theme => (
+      theme && typeof theme === 'object' && 'backgroundImage' in theme
+        ? { ...theme, backgroundImage: sanitizeImageUrl(theme.backgroundImage) }
+        : theme
+    ));
+
+    return res.status(200).json({ themes });
   } catch (err) {
     console.error('[themeLibraryRoutes] Error retrieving theme library:', err.message);
     return res.status(500).json({ error: 'Failed to retrieve theme library.' });
@@ -101,6 +109,12 @@ router.post('/theme-library/:token/themes', tokenLimiter, jsonParser, validateTo
       if (copied !== undefined) {
         theme.backgroundImage = copied;
       }
+    }
+
+    // Anything that isn't an image data URL or one of our own objects (e.g. an
+    // arbitrary external URL) is dropped: the overlay loads it inside OBS.
+    if ('backgroundImage' in theme) {
+      theme.backgroundImage = sanitizeImageUrl(theme.backgroundImage);
     }
 
     const MAX_BYTES = 900 * 1024; // 900 KB limit for Firestore doc safety

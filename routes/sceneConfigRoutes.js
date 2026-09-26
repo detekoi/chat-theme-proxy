@@ -3,6 +3,7 @@ const express = require('express');
 const { upsertSceneConfig, getSceneConfig, deleteSceneConfig } = require('../services/sceneConfigService');
 const { uploadDataUrlToGCS, deleteImagesForToken } = require('../services/storageService');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
+const { sanitizeSceneConfigValues } = require('../utils/configValidation');
 
 const router = express.Router();
 
@@ -66,6 +67,9 @@ router.put('/scene-config/:token', sceneConfigLimiter, jsonParser, validateToken
       }
     }
 
+    // After the upload so a failed upload's leftover data URL is checked too.
+    sanitizeSceneConfigValues(body.config);
+
     let stripped = false;
     let payloadString = JSON.stringify(body);
     const MAX_BYTES = 900 * 1024; // 900 KB limit for Firestore doc safety
@@ -109,6 +113,11 @@ router.get('/scene-config/:token', validateToken, async (req, res) => {
 
     if (!sceneConfig) {
       return res.status(404).json({ error: 'Scene configuration not found.' });
+    }
+
+    // Configs saved before value validation existed may still carry external URLs.
+    if (sceneConfig.config && typeof sceneConfig.config === 'object') {
+      sanitizeSceneConfigValues(sceneConfig.config);
     }
 
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
