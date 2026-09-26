@@ -1,9 +1,25 @@
 // services/sceneConfigService.js
 const { Firestore, Timestamp, FieldValue } = require('@google-cloud/firestore');
+const { REMOVED_CONFIG_KEYS } = require('../utils/configValidation');
 
 const firestore = new Firestore();
 const COLLECTION_NAME = 'sceneConfigs';
 const TWELVE_MONTHS_MS = 365 * 24 * 60 * 60 * 1000;
+
+/**
+ * The config map to write. The write merges into the stored config, so keys
+ * that are no longer accepted would otherwise survive from older saves; they
+ * are deleted explicitly instead.
+ * @param {Object} config - Sanitized config.
+ * @returns {Object}
+ */
+function buildConfigWrite(config) {
+  const write = { ...config };
+  for (const key of REMOVED_CONFIG_KEYS) {
+    write[key] = FieldValue.delete();
+  }
+  return write;
+}
 
 /**
  * Upserts a scene configuration in Firestore.
@@ -18,7 +34,7 @@ async function upsertSceneConfig(token, data) {
   const expiresAt = Timestamp.fromMillis(Date.now() + TWELVE_MONTHS_MS);
   
   const payload = {
-    config: data.config,
+    config: buildConfigWrite(data.config),
     sceneName: data.sceneName || 'default',
     configVersion: data.configVersion || 2,
     updatedAt: FieldValue.serverTimestamp(),
@@ -71,6 +87,7 @@ async function deleteSceneConfig(token) {
 }
 
 module.exports = {
+  buildConfigWrite,
   upsertSceneConfig,
   getSceneConfig,
   deleteSceneConfig

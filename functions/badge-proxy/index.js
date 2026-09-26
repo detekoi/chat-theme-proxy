@@ -1,6 +1,7 @@
 // badge-proxy/index.js
 // Cloud Functions (2nd gen) for proxying Twitch Badge and Cheermote API calls with Firestore caching.
 
+const crypto = require('crypto');
 const axios = require('axios');
 const { Firestore, Timestamp } = require('@google-cloud/firestore');
 const functions = require('@google-cloud/functions-framework');
@@ -292,6 +293,11 @@ functions.http('getChannelBadges', async (req, res) => {
         return res.status(400).send('Missing required query parameter: broadcaster_id');
     }
 
+    // Validate broadcaster_id is numeric-only to prevent Firestore path injection
+    if (!/^\d+$/.test(broadcasterId)) {
+        return res.status(400).send('Invalid broadcaster_id.');
+    }
+
     const cacheDocId = `${CHANNEL_BADGES_DOC_ID_PREFIX}${broadcasterId}`;
 
     try {
@@ -334,11 +340,20 @@ functions.http('getChannelBadges', async (req, res) => {
     }
 });
 
+// Constant-time comparison of a provided token against the expected secret.
+// Hashing first gives equal-length buffers, as timingSafeEqual requires.
+function tokensMatch(provided, expected) {
+    if (typeof provided !== 'string' || typeof expected !== 'string' || !expected) return false;
+    const a = crypto.createHash('sha256').update(provided).digest();
+    const b = crypto.createHash('sha256').update(expected).digest();
+    return crypto.timingSafeEqual(a, b);
+}
+
 // --- Cloud Function: Refresh Global Cache (Admin) ---
 functions.http('refreshGlobalCache', async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*'); // Adjust for actual needs
     res.set('Access-Control-Allow-Methods', 'POST');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, x-internal-refresh-token, X-CloudScheduler');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, x-internal-refresh-token');
 
     if (req.method === 'OPTIONS') {
         res.status(204).send('');
@@ -348,17 +363,17 @@ functions.http('refreshGlobalCache', async (req, res) => {
         return res.status(405).send('Method Not Allowed');
     }
 
-    // --- Security Check (simplified for brevity, ensure robust auth for admin functions) ---
-    const cloudSchedulerHeader = req.headers['x-cloudscheduler'];
+    // --- Security Check ---
+    // Only the shared internal token authorizes a refresh. The X-CloudScheduler
+    // header is not authentication: any caller can send it. A scheduler job must
+    // send x-internal-refresh-token (or be gated by IAM/OIDC on the function).
     const internalTokenHeader = req.headers['x-internal-refresh-token'];
     let authorized = false;
 
-    if (cloudSchedulerHeader === 'true') {
-        authorized = true;
-    } else if (internalTokenHeader) {
+    if (typeof internalTokenHeader === 'string' && internalTokenHeader) {
         try {
             const expectedToken = await getSecret(INTERNAL_REFRESH_TOKEN_SECRET_NAME);
-            if (internalTokenHeader === expectedToken) authorized = true;
+            authorized = tokensMatch(internalTokenHeader, expectedToken);
         } catch (secretError) {
             console.error('Error fetching internal refresh token for validation.');
             // Do not authorize if secret fetching fails

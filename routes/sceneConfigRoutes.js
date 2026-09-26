@@ -3,6 +3,8 @@ const express = require('express');
 const { upsertSceneConfig, getSceneConfig, deleteSceneConfig } = require('../services/sceneConfigService');
 const { uploadDataUrlToGCS, deleteImagesForToken } = require('../services/storageService');
 const { createTokenLimiter, validateToken } = require('../middleware/tokenValidation');
+const { sanitizeSceneConfigValues } = require('../utils/configValidation');
+const { isImageDataUrl } = require('../utils/imageValidation');
 
 const router = express.Router();
 
@@ -15,21 +17,22 @@ const jsonParser = express.json({ limit: '1mb' });
 // Every key the overlay reads: ConfigManager.getDefaultConfig() plus the runtime-only
 // keys written by settings-panel-manager (googleFontFamily, bgImage, channel targets,
 // YouTube toggles, preChromaKeyOpacity). Unknown keys are dropped so the endpoint
-// can't be used as an arbitrary public JSON store.
+// can't be used as an arbitrary public JSON store. The badge/cheermote endpoint
+// keys are deliberately absent (see REMOVED_CONFIG_KEYS in utils/configValidation).
 const ALLOWED_CONFIG_KEYS = new Set([
   'configVersion', 'chatMode', 'bgColor', 'borderColor', 'textColor', 'usernameColor',
   'fontSize', 'fontFamily', 'fontWeight', 'chatWidth', 'chatHeight', 'maxMessages',
   'showTimestamps', 'overrideUsernameColors', 'borderRadius', 'boxShadow', 'textShadow',
   'popup', 'theme', 'lastChannel', 'showBadges', 'showPronouns', 'timestampColor',
-  'pronounBadgeColor', 'badgeEndpointUrlGlobal', 'badgeEndpointUrlChannel',
+  'pronounBadgeColor',
   'badgeCacheGlobalTTL', 'badgeCacheChannelTTL', 'badgeFallbackHide',
-  'cheermoteEndpointUrl', 'cheermoteCacheTTL', 'thirdPartyEmotes',
+  'cheermoteCacheTTL', 'thirdPartyEmotes',
   'thirdPartyChannelEmotes', 'thirdPartyFilter7tvTwitchDisallowed',
   'thirdPartyFilter7tvSexual', 'thirdPartyFilter7tvEpilepsy', 'thirdPartyFilter7tvEdgy',
   'thirdPartyEmoteCacheGlobalTTL', 'thirdPartyEmoteCacheChannelTTL',
   'enlargeSingleEmotes', 'bgColorOpacity', 'bgImageOpacity', 'topFade', 'chromaKey',
   'googleFontFamily', 'bgImage', 'lastTwitchChannel', 'lastYouTubeTarget',
-  'showSuperChats', 'showMembershipEvents', 'showPlatformBadges', 'preChromaKeyOpacity',
+  'showSuperChats', 'showMembershipEvents', 'showPlatformBadges', 'preChromaKeyOpacity', 'preChromaKeyColor',
   'hideCommands'
 ]);
 
@@ -59,12 +62,15 @@ router.put('/scene-config/:token', sceneConfigLimiter, jsonParser, validateToken
     body.config = sanitizeConfig(body.config);
 
     // Automatically convert base64 bgImage data URLs to Cloud Storage public HTTPS URLs
-    if (body.config.bgImage && typeof body.config.bgImage === 'string' && body.config.bgImage.startsWith('data:image/')) {
+    if (isImageDataUrl(body.config.bgImage)) {
       const gcsUrl = await uploadDataUrlToGCS(body.config.bgImage, token);
       if (gcsUrl) {
         body.config.bgImage = gcsUrl;
       }
     }
+
+    // After the upload so a failed upload's leftover data URL is checked too.
+    sanitizeSceneConfigValues(body.config);
 
     let stripped = false;
     let payloadString = JSON.stringify(body);
@@ -109,6 +115,11 @@ router.get('/scene-config/:token', validateToken, async (req, res) => {
 
     if (!sceneConfig) {
       return res.status(404).json({ error: 'Scene configuration not found.' });
+    }
+
+    // Configs saved before value validation existed may still carry external URLs.
+    if (sceneConfig.config && typeof sceneConfig.config === 'object') {
+      sanitizeSceneConfigValues(sceneConfig.config);
     }
 
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
